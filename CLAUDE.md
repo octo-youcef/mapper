@@ -75,17 +75,29 @@ from m_app.cli import app
 ## Before Starting Features
 
 **CRITICAL**: Before implementing any feature:
-1. **Ask clarifying questions** about requirements, scope, and edge cases
-2. **Make opinionated suggestions** with justifications when appropriate
-3. **Propose alternatives** if there's a better approach
-4. **Discuss impact** on existing code and architecture
+1. **Interface comes first** - Always start with user-facing interface (CLI, API, UI)
+2. **Frame in user journeys** - Ask questions about user goals and desired outcomes
+3. **Ask questions ONE AT A TIME** - Don't overwhelm with multiple questions at once
+4. **Wait for answers** - Get user feedback on each question before moving to the next
+5. **Make opinionated suggestions** with justifications when appropriate
+6. **Propose alternatives** if there's a better approach
+7. **Discuss impact** on existing code and architecture
+
+### Question-Asking Protocol
+- **Ask one question at a time** - Allow user to focus and give detailed answers
+- **Provide context** - Explain why the question matters to the user experience
+- **Offer suggestions** - Include your recommendation to guide the discussion
+- **Number questions** - Use clear numbering to track progress through decision-making
 
 Examples of what to ask about:
+- **User Journey**: What is the user trying to accomplish? What's the end goal?
+- **User Experience**: How should the interface look/feel? What's intuitive?
+- **Workflow**: What are the steps from start to finish? What's the happy path?
 - Design decisions (data structures, APIs, algorithms)
 - Error handling strategies
 - Testing approach
 - Performance considerations
-- User experience (CLI flags, output formats)
+- Output formats and feedback to user
 
 ## Documentation Requirements
 
