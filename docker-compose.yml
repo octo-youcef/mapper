@@ -1,0 +1,51 @@
+services:
+  neo4j:
+    image: neo4j:5.28-community
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    environment:
+      NEO4J_AUTH: neo4j/neo4j
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_dbms_security_procedures_unrestricted: apoc.*
+    ports:
+      - "7474:7474"  # HTTP
+      - "7687:7687"  # Bolt
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider http://localhost:7474 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: .
+    command: uv run uvicorn m_app.api:app --host 0.0.0.0 --port 8080 --reload
+    volumes:
+      - .:/app
+    ports:
+      - "8080:8080"
+    environment:
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: neo4j
+      ENVIRONMENT: dev
+    depends_on:
+      neo4j:
+        condition: service_healthy
+
+  web:
+    image: node:20-alpine
+    working_dir: /app/web
+    command: sh -c "echo 'Web UI not implemented yet. Run npm install && npm run dev to start.' && sleep infinity"
+    volumes:
+      - .:/app
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_API_URL: http://localhost:8080
+    depends_on:
+      - api
+
+volumes:
+  neo4j_data:
+  neo4j_logs:
