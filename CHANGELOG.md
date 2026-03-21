@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Replaced GitHub releases badge with static version badge (auto-updated by bump-my-version)
+- Replaced Codecov with gist-based dynamic coverage badge
+- Updated badge system to follow chew-site pattern (version, tests, coverage, python)
+- Made test badge dynamic (auto-updated by CI via GitHub Gist)
+
+### Removed
+- Codecov integration
+
+### Added
+- CI workflow to auto-update coverage and test badges via GitHub Gist
+- Coverage badge color-coding based on percentage
+- Comprehensive badge system documentation in docs/technical/badges.md
+- CODEOWNERS file for main branch protection
+
 ## [0.1.1] - 2026-03-21
 
 ### Changed
