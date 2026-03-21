@@ -69,9 +69,9 @@ quality: lint
 test *args:
     uv run pytest {{args}}
 
-# Run tests with coverage
+# Run tests with coverage (fails if coverage < 80%)
 test-coverage:
-    uv run pytest --cov=src/mapper --cov-report=html --cov-report=term
+    uv run pytest --cov=src/mapper --cov-report=html --cov-report=term --cov-fail-under=80
 
 # Clean up generated files
 clean:

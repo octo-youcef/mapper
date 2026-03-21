@@ -75,4 +75,4 @@ jobs:
           NEO4J_USER: neo4j
           NEO4J_PASSWORD: test_password
         run: |
-          uv run pytest --cov=src/mapper --cov-report=term
+          uv run pytest --cov=src/mapper --cov-report=term --cov-fail-under=80

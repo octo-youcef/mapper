@@ -186,7 +186,9 @@ tests/
 ### Before Every PR
 
 - **MUST pass all tests**: `just test` - All tests green
-- **MUST have test coverage**: `just test-coverage` - Verify coverage
+- **MUST maintain 80% coverage**: `just test-coverage` - Coverage must be ≥ 80%
+  - CI will fail if coverage drops below 80%
+  - Add tests for new code to maintain coverage threshold
 - **MUST pass CI checks**: All GitHub Actions workflows pass
 - Update test count in README.md (e.g., "58 passing")
 
@@ -390,4 +392,4 @@ just mapper [args]    # Run CLI tool
 ---
 
 **Last Updated**: 2026-03-21
-**Current Version**: 0.2.2
+**Current Version**: 0.2.3
