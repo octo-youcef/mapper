@@ -1,6 +1,6 @@
 # MApper (Application Mapper)
 
-![Version](https://img.shields.io/badge/version-0.2.2-blue.svg)
+![Version](https://img.shields.io/badge/version-0.2.3-blue.svg)
 ![Tests](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/octo-youcef/3424657d04826a3196811985d2f13687/raw/mapper-tests.json)
 ![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/octo-youcef/3424657d04826a3196811985d2f13687/raw/mapper-coverage.json)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)
