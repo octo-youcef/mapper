@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-03-21
+
+### Changed
+- **Enforced 80% test coverage threshold** to prevent regression
+  - CI now fails if coverage drops below 80%
+  - Updated `just test-coverage` command with `--cov-fail-under=80`
+  - Documented coverage requirement in CLAUDE.md
+  - Current coverage: 80.44%
+
 ## [0.2.2] - 2026-03-21
 
 ### Changed
