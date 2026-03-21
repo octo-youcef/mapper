@@ -10,9 +10,18 @@ runner = CliRunner()
 class TestInitCommand:
     """Tests for init command."""
 
-    def test_init_command(self):
-        """Test init command is accessible."""
+    def test_init_command_without_env_vars(self, monkeypatch):
+        """Test init command fails without required environment variables."""
+        # Remove env vars to ensure they're not set
+        monkeypatch.delenv("NEO4J_USER", raising=False)
+        monkeypatch.delenv("NEO4J_PASSWORD", raising=False)
+
         result = runner.invoke(app, ["init"])
+        assert result.exit_code == 1
+        assert "NEO4J_USER and NEO4J_PASSWORD environment variables must be set" in result.stdout
+
+    def test_init_command_help(self):
+        """Test init command help is accessible."""
+        result = runner.invoke(app, ["init", "--help"])
         assert result.exit_code == 0
-        assert "Initializing mapper.yml" in result.stdout
-        assert "Not implemented yet" in result.stdout
+        assert "Initialize MApper configuration interactively" in result.stdout
