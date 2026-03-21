@@ -7,7 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-03-21
+
+### Changed
+- **Refactored CLAUDE.md** for clarity and improved workflow documentation
+  - Added "Development Workflow" section with feature implementation order
+  - Added workflow preferences: docs → tests → app code → CLI → technical docs
+  - Documented preference for submodules with classes for application logic
+  - Added draft PR workflow guidelines
+  - Consolidated related sections and removed redundancy
+  - Added "Quick Reference" section for fast lookup
+  - Improved formatting with consistent hierarchy and horizontal rules
+  - Reduced from 445 to 394 lines while adding content
+
 ## [0.2.1] - 2026-03-21
+
+### Changed
+- **Removed unnecessary global ConfigManager instance**
+  - Convert `load_config()` from instance method to `@classmethod`
+  - Convert `save_config()` from `@staticmethod` to `@classmethod`
+  - Remove temporary `ConfigManager()` instantiation in `save_config()`
+  - Directly expose class methods as module-level functions
+  - Follows standard Python patterns for utility classes
 
 ## [0.2.0] - 2026-03-21
 
