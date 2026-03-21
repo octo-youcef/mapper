@@ -46,24 +46,24 @@ class RelationAnalyzer(Protocol): ...
 
 **Application imports MUST follow this pattern:**
 - Import the module, not individual classes/functions
-- Use `from m_apper import module` then `module.Thing`
-- **DO NOT** use `from m_apper.module import Thing`
+- Use `from mapper import module` then `module.Thing`
+- **DO NOT** use `from mapper.module import Thing`
 
 **Examples:**
 ```python
 # ✅ CORRECT
-from m_apper import parser
-from m_apper import graph
-from m_apper import cli
+from mapper import parser
+from mapper import graph
+from mapper import cli
 
 ast_tree = parser.parse_file(path)
 connection = graph.Neo4jConnection(uri, auth)
 cli.app()
 
 # ❌ INCORRECT
-from m_apper.parser import parse_file
-from m_apper.graph import Neo4jConnection
-from m_apper.cli import app
+from mapper.parser import parse_file
+from mapper.graph import Neo4jConnection
+from mapper.cli import app
 ```
 
 **Third-party imports:**
@@ -151,6 +151,113 @@ Examples of what to ask about:
 - **MUST pass CI checks**: All GitHub Actions workflows must pass
 - PR should NOT be marked as ready for review if tests are failing
 
+### Testing Style Conventions
+
+**Prefer test classes over lists of test functions:**
+
+```python
+# ✅ CORRECT - Use test classes to group related tests
+class TestAnalyzeCommand:
+    """Tests for analyze command."""
+
+    def test_basic_analysis(self):
+        """Test basic analysis with required path."""
+        ...
+
+    def test_with_name_option(self):
+        """Test with --name option."""
+        ...
+
+    def test_with_force_flag(self):
+        """Test with --force flag."""
+        ...
+
+class TestListCommand:
+    """Tests for list command."""
+
+    def test_default_output(self):
+        ...
+
+    def test_detailed_flag(self):
+        ...
+
+# ❌ INCORRECT - Avoid flat lists of test functions
+def test_analyze_basic():
+    ...
+
+def test_analyze_with_name():
+    ...
+
+def test_list_default():
+    ...
+
+def test_list_detailed():
+    ...
+```
+
+**Benefits of test classes:**
+- Better organization and grouping of related tests
+- Easier to share setup/teardown via fixtures or methods
+- Clearer test hierarchy in output
+- Easier to run specific test groups
+
+### CLI Structure Conventions
+
+**Organize CLI commands by domain in separate modules:**
+
+**Directory structure:**
+```
+src/mapper/cli/
+├── __init__.py      # Main app, imports and registers all command modules
+├── setup.py         # Setup commands (init)
+├── analysis.py      # Analysis commands (analyze, list, show, export, delete)
+├── status.py        # Status command
+├── version.py       # Version command
+├── queries.py       # Query management (query list/run/create/add/export)
+└── config.py        # Config management (config show/edit)
+```
+
+**Benefits:**
+- Better separation of concerns
+- Easier to find and maintain commands
+- Clearer code organization
+- Can share utilities within domain modules
+
+### Test Structure Conventions
+
+**Organize tests in isolated packages mirroring the source structure:**
+
+**Directory structure:**
+```
+tests/
+├── __init__.py
+├── cli/
+│   ├── __init__.py
+│   ├── test_cli.py       # General CLI tests
+│   ├── test_setup.py     # Setup command tests (init)
+│   ├── test_analysis.py  # Analysis command tests (analyze, list, show, export, delete)
+│   ├── test_status.py    # Status command tests
+│   ├── test_version.py   # Version command tests
+│   ├── test_queries.py   # Query management tests
+│   └── test_config.py    # Config management tests
+├── parser/
+│   ├── __init__.py
+│   └── test_parser.py    # Parser tests
+├── graph/
+│   ├── __init__.py
+│   └── test_graph.py     # Neo4j graph tests
+└── analyzer/
+    ├── __init__.py
+    └── test_analyzer.py  # Analyzer tests
+```
+
+**Benefits:**
+- Clear separation by domain/module
+- Easy to locate tests for specific functionality
+- Can run tests for specific modules independently
+- Better organization as codebase grows
+- Mirrors source code structure
+
 ## Versioning (Project-Specific)
 
 ### Version Management
@@ -198,7 +305,7 @@ Examples of what to ask about:
 ```
 m-app/
 ├── src/
-│   └── m_apper/              # Main package (all code here)
+│   └── mapper/              # Main package (all code here)
 │       ├── __init__.py
 │       ├── cli.py          # Typer CLI entrypoint
 │       ├── parser.py       # AST parsing
@@ -271,7 +378,35 @@ just mapper [args]      # Run CLI tool
 - **Feature branches**: `feature/description`
 - **Patch branches**: `patch/description`
 - Main branch is protected, always work via PR
-- **Prefer rebase over fix commits** - keep history clean
+- **ALWAYS maintain clean commit history**:
+  - **CRITICAL**: Organize commits as **logical feature units**
+    - Each commit should represent a complete, cohesive piece of functionality
+    - Related changes (rename + restructure, feature + tests + docs) should be grouped together
+    - Commits should tell a clear story of how the feature was built
+    - A reviewer should be able to understand each commit in isolation
+  - **CRITICAL**: Avoid fixup/format commits (e.g., "Fix linting", "Format code", "Fix typo")
+  - Before pushing, use `git rebase -i` to squash fixups into logical feature units
+  - If linting fails after a commit, amend it - don't add a fix commit
+  - If you need to restructure, rename, or refactor: combine related changes into single logical commits
+  - Exception: Addressing PR review feedback can be separate commits if adding new functionality
+  - Exception: Documentation updates that are substantial can be separate commits
+
+**Example of logical feature units:**
+```
+✅ GOOD - Logical feature units:
+1. Add CLI command structure with placeholders
+2. Add documentation, tests, and modular structure (PR feedback)
+3. Update CLAUDE.md with git workflow rules
+
+❌ BAD - Scattered, fixup commits:
+1. Add CLI command structure with placeholders
+2. Fix Neo4j version (should be in #1)
+3. Add technical documentation
+4. Rename package (should be with #5)
+5. Restructure CLI (rename + restructure are related)
+6. Update CLAUDE.md
+```
+
 - **Before every commit**: Validate linting with `just lint`
 - **Before every PR**: All tests must pass with `just test`
 
