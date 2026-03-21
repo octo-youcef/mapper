@@ -375,6 +375,11 @@ just mapper [args]      # Run CLI tool
 
 ## Git Workflow
 
+- **CRITICAL: NEVER push directly to main** - ALL changes must go through feature branches and PRs
+  - **ALWAYS** create a feature branch for any changes
+  - **ALWAYS** use pull requests with rebase merging
+  - Main branch is protected - direct pushes will be rejected
+  - If you accidentally commit to main, revert immediately and create a feature branch
 - **Feature branches**: `feature/description`
 - **Patch branches**: `patch/description`
 - Main branch is protected, always work via PR

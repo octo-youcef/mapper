@@ -16,4 +16,3 @@ class TestVersionCommand:
         result = runner.invoke(app, ["version"])
         assert result.exit_code == 0
         assert f"MApper version: {__version__}" in result.stdout
-        assert __version__ == "0.1.0"

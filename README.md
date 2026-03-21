@@ -2,8 +2,8 @@
 
 [![Version](https://img.shields.io/github/v/release/octo-youcef/mapper)](https://github.com/octo-youcef/mapper/releases)
 [![CI](https://github.com/octo-youcef/mapper/actions/workflows/ci.yml/badge.svg)](https://github.com/octo-youcef/mapper/actions/workflows/ci.yml)
-[![Coverage](https://img.shields.io/badge/coverage-0%25-red.svg)](https://github.com/octo-youcef/mapper)
-[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/)
+[![Coverage](https://codecov.io/gh/octo-youcef/mapper/branch/main/graph/badge.svg)](https://codecov.io/gh/octo-youcef/mapper)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 
 AST-based Python code analyzer that maps application structure and relationships into a Neo4j graph database, with CLI and web UI for exploration.
