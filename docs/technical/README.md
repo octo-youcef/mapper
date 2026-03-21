@@ -5,6 +5,7 @@ This directory contains technical documentation for MApper developers.
 ## Contents
 
 - **[CLI Commands](cli-commands.md)**: Complete reference for all mapper commands
+- **[Badge System](badges.md)**: README badge system (version, tests, coverage, python)
 - **Architecture**: System design and architectural decisions
 - **Neo4j Schema**: Graph database schema for code relationships
 - **AST Parsing**: How Python code is parsed and analyzed

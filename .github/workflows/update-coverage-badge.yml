@@ -1,11 +1,11 @@
-name: Update Coverage Badge
+name: Update Badges
 
 on:
   push:
     branches: [main]
 
 jobs:
-  update-coverage:
+  update-badges:
     runs-on: ubuntu-latest
 
     steps:
@@ -26,19 +26,25 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          uv run pytest --cov=src/mapper --cov-report=term --cov-report=json
+          uv run pytest --cov=src/mapper --cov-report=term --cov-report=json > test-output.txt 2>&1 || true
 
-      - name: Extract coverage percentage
-        id: coverage
+      - name: Extract test count and coverage
+        id: metrics
         run: |
+          # Extract test count (e.g., "45 passed")
+          TEST_COUNT=$(grep -oP '\d+(?= passed)' test-output.txt || echo "0")
+          echo "test_count=$TEST_COUNT" >> $GITHUB_OUTPUT
+          echo "Tests: $TEST_COUNT passing"
+
+          # Extract coverage percentage
           COVERAGE=$(python -c "import json; print(json.load(open('coverage.json'))['totals']['percent_covered_display'])")
-          echo "percentage=$COVERAGE" >> $GITHUB_OUTPUT
+          echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
           echo "Coverage: $COVERAGE%"
 
-      - name: Determine badge color
+      - name: Determine coverage badge color
         id: color
         run: |
-          COVERAGE=${{ steps.coverage.outputs.percentage }}
+          COVERAGE=${{ steps.metrics.outputs.coverage }}
           if (( $(echo "$COVERAGE >= 90" | bc -l) )); then
             COLOR="brightgreen"
           elif (( $(echo "$COVERAGE >= 75" | bc -l) )); then
@@ -51,23 +57,34 @@ jobs:
             COLOR="red"
           fi
           echo "color=$COLOR" >> $GITHUB_OUTPUT
-          echo "Badge color: $COLOR"
+          echo "Coverage badge color: $COLOR"
 
-      - name: Update gist
+      - name: Update gist with badges
         env:
           GIST_ID: 3424657d04826a3196811985d2f13687
           GITHUB_TOKEN: ${{ secrets.GIST_TOKEN }}
         run: |
+          # Create test badge JSON
+          cat > tests.json << EOF
+          {
+            "schemaVersion": 1,
+            "label": "tests",
+            "message": "${{ steps.metrics.outputs.test_count }} passing",
+            "color": "success"
+          }
+          EOF
+
+          # Create coverage badge JSON
           cat > coverage.json << EOF
           {
             "schemaVersion": 1,
             "label": "coverage",
-            "message": "${{ steps.coverage.outputs.percentage }}%",
+            "message": "${{ steps.metrics.outputs.coverage }}%",
             "color": "${{ steps.color.outputs.color }}"
           }
           EOF
 
-          # Update the gist file
+          # Update both gist files
           curl -X PATCH \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $GITHUB_TOKEN" \
@@ -75,6 +92,9 @@ jobs:
             -d @- << EOF
           {
             "files": {
+              "mapper-tests.json": {
+                "content": $(cat tests.json | jq -Rs .)
+              },
               "mapper-coverage.json": {
                 "content": $(cat coverage.json | jq -Rs .)
               }
