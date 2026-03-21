@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-03-21
+
 ### Changed
 - Replaced GitHub releases badge with static version badge (auto-updated by bump-my-version)
 - Replaced Codecov with gist-based dynamic coverage badge
@@ -40,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Neo4j Docker setup for development
 - GitHub Actions CI/CD pipeline
 
-[unreleased]: https://github.com/octo-youcef/mapper/compare/v0.1.1...HEAD
+[unreleased]: https://github.com/octo-youcef/mapper/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/octo-youcef/mapper/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/octo-youcef/mapper/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/octo-youcef/mapper/releases/tag/v0.1.0
