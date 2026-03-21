@@ -1,6 +1,6 @@
 # MApper (Application Mapper)
 
-![Version](https://img.shields.io/badge/version-0.1.2-blue.svg)
+![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)
 ![Tests](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/octo-youcef/3424657d04826a3196811985d2f13687/raw/mapper-tests.json)
 ![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/octo-youcef/3424657d04826a3196811985d2f13687/raw/mapper-coverage.json)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)
@@ -62,7 +62,7 @@ just up
 ```
 
 The services will be available at:
-- **Neo4j Browser**: http://localhost:7474 (username: neo4j, password: neo4j)
+- **Neo4j Browser**: http://localhost:7474 (username: neo4j, password: devpassword)
 - **Backend API**: http://localhost:8080/api/
 - **Web UI**: http://localhost:3000
 
