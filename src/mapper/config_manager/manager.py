@@ -76,15 +76,16 @@ class ConfigManager:
 
         return merged
 
-    def load_config(self) -> models.Config:
+    @classmethod
+    def load_config(cls) -> models.Config:
         """Load the effective configuration (global + local merged).
 
         Returns:
             Config: Effective configuration with all sources merged
         """
-        global_config = self.load_config_file(self.get_global_config_path())
-        local_config = self.load_config_file(self.get_local_config_path())
-        merged = self.merge_configs(global_config, local_config)
+        global_config = cls.load_config_file(cls.get_global_config_path())
+        local_config = cls.load_config_file(cls.get_local_config_path())
+        merged = cls.merge_configs(global_config, local_config)
 
         # Build config objects from merged dict
         neo4j_config = models.Neo4jConfig(**merged.get("neo4j", {}))
@@ -93,8 +94,8 @@ class ConfigManager:
 
         return models.Config(neo4j=neo4j_config, analysis=analysis_config, output=output_config)
 
-    @staticmethod
-    def save_config(config: models.Config, global_config: bool = False) -> Path:
+    @classmethod
+    def save_config(cls, config: models.Config, global_config: bool = False) -> Path:
         """Save configuration to file.
 
         Args:
@@ -104,10 +105,7 @@ class ConfigManager:
         Returns:
             Path: Path where config was saved
         """
-        manager = ConfigManager()
-        path = (
-            manager.get_global_config_path() if global_config else manager.get_local_config_path()
-        )
+        path = cls.get_global_config_path() if global_config else cls.get_local_config_path()
 
         # Convert attrs objects to dict
         config_dict = attrs.asdict(config)
