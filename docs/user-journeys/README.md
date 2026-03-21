@@ -4,10 +4,12 @@ This directory contains user-focused workflow documentation for MApper.
 
 ## Contents
 
-- **Analyzing a Package**: How to analyze a Python package
-- **Exploring Results**: Using the web UI to explore code relationships
-- **Querying the Graph**: Direct Neo4j queries for advanced analysis
-- **Exporting Data**: Exporting analysis results
+1. **[Initial Setup](01-initial-setup.md)**: First-time setup with Neo4j and configuration
+2. **[Configuration Management](02-configuration-management.md)**: Managing global and local settings
+3. **Analyzing a Package**: How to analyze a Python package _(coming soon)_
+4. **Exploring Results**: Using the web UI to explore code relationships _(coming soon)_
+5. **Querying the Graph**: Direct Neo4j queries for advanced analysis _(coming soon)_
+6. **Exporting Data**: Exporting analysis results _(coming soon)_
 
 ## Documentation Format
 
