@@ -10,50 +10,80 @@ runner = CliRunner()
 class TestStartCommand:
     """Tests for analyse start command."""
 
-    def test_basic_analysis(self):
+    def test_basic_analysis(self, tmp_path):
         """Test start command with required path."""
-        result = runner.invoke(app, ["analyse", "start", "/fake/path"])
-        assert result.exit_code == 0
-        assert "Starting analysis: /fake/path" in result.stdout
-        assert "Not implemented yet" in result.stdout
+        # Create a test file
+        (tmp_path / "test.py").write_text("def test(): pass")
 
-    def test_with_name_option(self):
+        result = runner.invoke(app, ["analyse", "start", str(tmp_path)])
+        assert result.exit_code == 0
+        assert "Analyzing:" in result.stdout
+        assert "Analysis complete" in result.stdout
+        assert "Modules" in result.stdout
+
+    def test_with_name_option(self, tmp_path):
         """Test start command with --name option."""
-        result = runner.invoke(app, ["analyse", "start", "/fake/path", "--name", "test-pkg"])
-        assert result.exit_code == 0
-        assert "Starting analysis: /fake/path" in result.stdout
-        assert "Package name: test-pkg" in result.stdout
+        (tmp_path / "test.py").write_text("def test(): pass")
 
-    def test_with_force_flag(self):
+        result = runner.invoke(app, ["analyse", "start", str(tmp_path), "--name", "test-pkg"])
+        assert result.exit_code == 0
+        assert "test-pkg" in result.stdout
+
+    def test_with_force_flag(self, tmp_path):
         """Test start command with --force flag."""
-        result = runner.invoke(app, ["analyse", "start", "/fake/path", "--force"])
-        assert result.exit_code == 0
-        assert "Mode: Full re-analysis" in result.stdout
+        (tmp_path / "test.py").write_text("def test(): pass")
 
-    def test_quiet_flag(self):
+        result = runner.invoke(app, ["analyse", "start", str(tmp_path), "--force"])
+        assert result.exit_code == 0
+        # Force flag doesn't affect output yet, just check it's accepted
+
+    def test_quiet_flag(self, tmp_path):
         """Test start command with --quiet flag."""
-        result = runner.invoke(app, ["analyse", "start", "/fake/path", "--quiet"])
-        assert result.exit_code == 0
+        (tmp_path / "test.py").write_text("def test(): pass")
 
-    def test_verbose_flag(self):
+        result = runner.invoke(app, ["analyse", "start", str(tmp_path), "--quiet"])
+        assert result.exit_code == 0
+        # Quiet mode should suppress most output
+        assert "Analyzing:" not in result.stdout
+
+    def test_verbose_flag(self, tmp_path):
         """Test start command with --verbose flag."""
-        result = runner.invoke(app, ["analyse", "start", "/fake/path", "--verbose"])
+        (tmp_path / "test.py").write_text("def test(): pass")
+
+        result = runner.invoke(app, ["analyse", "start", str(tmp_path), "--verbose"])
         assert result.exit_code == 0
 
-    def test_verbose_short_flag(self):
+    def test_verbose_short_flag(self, tmp_path):
         """Test start command with -v short flag."""
-        result = runner.invoke(app, ["analyse", "start", "/fake/path", "-v"])
+        (tmp_path / "test.py").write_text("def test(): pass")
+
+        result = runner.invoke(app, ["analyse", "start", str(tmp_path), "-v"])
         assert result.exit_code == 0
 
-    def test_quiet_short_flag(self):
+    def test_quiet_short_flag(self, tmp_path):
         """Test start command with -q short flag."""
-        result = runner.invoke(app, ["analyse", "start", "/fake/path", "-q"])
-        assert result.exit_code == 0
+        (tmp_path / "test.py").write_text("def test(): pass")
 
-    def test_multiple_excludes(self):
+        result = runner.invoke(app, ["analyse", "start", str(tmp_path), "-q"])
+        assert result.exit_code == 0
+        assert "Analyzing:" not in result.stdout
+
+    def test_multiple_excludes(self, tmp_path):
         """Test start command with multiple --exclude options."""
+        (tmp_path / "main.py").write_text("def main(): pass")
+        (tmp_path / "test.py").write_text("def test(): pass")
+
         result = runner.invoke(
-            app, ["analyse", "start", "/fake/path", "--exclude", "tests/", "--exclude", "docs/"]
+            app,
+            [
+                "analyse",
+                "start",
+                str(tmp_path),
+                "--exclude",
+                "*/test.py",
+                "--exclude",
+                "*/docs/*",
+            ],
         )
         assert result.exit_code == 0
 
