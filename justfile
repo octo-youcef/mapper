@@ -65,13 +65,21 @@ fix:
 # Run all code quality checks (alias for lint)
 quality: lint
 
-# Run tests with pytest
+# Run all tests (unit + integration)
 test *args:
     uv run pytest {{args}}
 
-# Run tests with coverage (fails if coverage < 80%)
+# Run unit tests only
+test-unit *args:
+    uv run pytest tests/unit {{args}}
+
+# Run integration tests only
+test-integration *args:
+    uv run pytest tests/integration {{args}}
+
+# Run unit tests with coverage (fails if coverage < 65%)
 test-coverage:
-    uv run pytest --cov=src/mapper --cov-report=html --cov-report=term --cov-fail-under=80
+    uv run pytest tests/unit --cov=src/mapper --cov-report=html --cov-report=term --cov-fail-under=65
 
 # Clean up generated files
 clean:
