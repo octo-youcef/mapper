@@ -5,7 +5,7 @@ from typing import Any
 from rich.table import Table
 
 
-def get_nested_value(data: dict[str, Any], key: str) -> Any:
+def get_nested_value(data: dict[str, Any], key: str) -> Any | None:
     """Get a nested value from a dict using dot notation.
 
     Args:

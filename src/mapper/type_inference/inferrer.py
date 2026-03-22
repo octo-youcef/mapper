@@ -159,14 +159,6 @@ class TypeInferrer:
                 return "None"
             return value_type
 
-        # String literal (deprecated but still used in older Python versions)
-        elif isinstance(node, ast.Str):
-            return "str"
-
-        # Number literal (deprecated but still used in older Python versions)
-        elif isinstance(node, ast.Num):
-            return type(node.n).__name__
-
         # List literal
         elif isinstance(node, ast.List):
             return "list"
@@ -174,10 +166,6 @@ class TypeInferrer:
         # Dict literal
         elif isinstance(node, ast.Dict):
             return "dict"
-
-        # None (deprecated but still used in older Python versions)
-        elif isinstance(node, ast.NameConstant) and node.value is None:
-            return "None"
 
         # Name reference (variable)
         elif isinstance(node, ast.Name):
