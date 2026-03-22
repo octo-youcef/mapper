@@ -56,12 +56,17 @@ When implementing new features, **ALWAYS** follow this order:
 1. Propose version bump type (patch/minor/major) and get confirmation
 2. Run `just version <type>` to bump version
 3. Update "Current Version" in this file
-4. Run `just lint` and fix all issues
-5. Run `just test-coverage` and update test count in README.md
-6. Push commits
-7. Create **draft PR** for early review
-8. Wait for CI to pass (use `gh pr view <number> --json statusCheckRollup`)
-9. Mark PR as ready for review
+4. **Write technical documentation** if adding/modifying architecture
+   - Document new modules, patterns, or significant changes in `docs/technical/`
+   - Update `docs/technical/README.md` index
+   - Explain design decisions and integration points
+5. Update CHANGELOG.md with user-facing changes
+6. Run `just lint` and fix all issues
+7. Run `just test-coverage` and verify coverage passes
+8. Push commits
+9. Create **draft PR** for early review
+10. Wait for CI to pass (use `gh pr view <number> --json statusCheckRollup`)
+11. Mark PR as ready for review
 
 ### Question-Asking Protocol
 
@@ -381,10 +386,12 @@ just mapper [args]    # Run CLI tool
 - ✅ No fixup/format commits
 
 ### Before PR
+- ✅ Technical docs written (if architectural changes)
+- ✅ CHANGELOG.md updated with user-facing changes
 - ✅ All tests pass: `just test`
+- ✅ Coverage passes: `just test-coverage`
 - ✅ Version bumped: `just version <type>`
 - ✅ Current version updated in this file
-- ✅ Test count updated in README.md
 - ✅ Create **draft PR** for review
 - ✅ Wait for CI to pass
 - ✅ Mark ready for review

@@ -122,7 +122,7 @@ Summary:
   • Database initialized: Yes
 
 Next steps:
-  • Run mapper analyze /path/to/code to analyze a project
+  • Run mapper analyse start /path/to/code to analyze a project
   • Run mapper config get to view your configuration
   • Run mapper --help to see all available commands
 ```
@@ -182,7 +182,7 @@ After completing this journey, you will have:
 ✅ **Environment variables set** for secure credential management
 ✅ **Configuration file created** (`.mapper.toml`) with sensible defaults
 ✅ **Database schema initialized** with constraints and indexes
-✅ **Ready to analyze code** with `mapper analyze`
+✅ **Ready to analyze code** with `mapper analyse start`
 
 ## Troubleshooting
 

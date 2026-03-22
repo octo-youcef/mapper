@@ -24,8 +24,8 @@ mapper analyse export <package> # Export package data
 mapper analyse delete <package> # Delete package
 
 # Configuration commands
-mapper config get <key>        # Get config value
-mapper config show [group]     # Show configuration
+mapper config get [key]        # Get config value(s)
+mapper config set <key> <value> # Set config value
 mapper config edit             # Edit config file
 
 # Query commands

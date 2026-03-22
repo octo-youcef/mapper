@@ -209,7 +209,7 @@ export NEO4J_USER=prod_user
 export NEO4J_PASSWORD=prod_password
 
 # Test the connection
-mapper init --test-only
+mapper status
 ```
 
 #### Change Analysis Behavior

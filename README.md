@@ -69,8 +69,11 @@ The services will be available at:
 ### Basic Usage
 
 ```bash
-# Analyze a Python package
-mapper analyze /path/to/package
+# Initialize configuration
+mapper init
+
+# Start analyzing a Python package
+mapper analyse start /path/to/package
 
 # View analysis results in Neo4j Browser
 # Navigate to http://localhost:7474
@@ -167,20 +170,27 @@ mapper/
 ## CLI Commands
 
 ```bash
-# Analyze a package
-mapper analyze /path/to/package
+# Setup
+mapper init              # Initialize configuration
+mapper status            # Check system health
+mapper version           # Show version
 
-# List analyzed packages
-mapper list
+# Analysis
+mapper analyse start /path/to/package          # Analyze a package
+mapper analyse list                            # List analyzed packages
+mapper analyse get <package-name>              # Show package details
+mapper analyse export <package-name>           # Export graph data
+mapper analyse delete <package-name>           # Delete package from database
 
-# Show package details
-mapper show <package-name>
+# Configuration
+mapper config get [key]                        # Get config value(s)
+mapper config set <key> <value>                # Set config value
+mapper config edit                             # Edit config in $EDITOR
 
-# Export graph data
-mapper export <package-name> --format json
-
-# Clear database
-mapper clear [package-name]
+# Queries
+mapper query list                              # List available queries
+mapper query run <query-name> <package>        # Run a query
+mapper query create                            # Create custom query
 ```
 
 ## API Documentation
