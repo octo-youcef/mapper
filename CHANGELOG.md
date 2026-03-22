@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-03-22
+
+### Added
+- **Codebase analysis feature** - Complete AST-based Python code analyser
+  - `mapper analyse start` command to analyse Python projects
+  - File scanner with configurable exclusion patterns
+  - AST extractor for modules, classes, functions, methods
+  - Decorator extraction (names only, no argument values for consistency)
+  - Import statement tracking (both `import X` and `from X import Y`)
+  - Type inference system for validating type annotations
+  - Implicit None return detection with high confidence
+  - Function call tracking within function bodies
+  - Comprehensive test suite (75 unit tests, 7 integration tests)
+- **New analyser package** (`src/mapper/analyser/`)
+  - `Analyser` class for orchestrating analysis workflow
+  - `FileScanner` for discovering Python files
+  - Configurable exclusion patterns (pycache, venv, git, pyc)
+- **New AST parser package** (`src/mapper/ast_parser/`)
+  - `ASTExtractor` for parsing Python code and extracting structure
+  - Support for extracting: modules, classes, functions, methods, imports, decorators, calls
+  - Type annotation extraction for parameters and return types
+  - Extracts structural metadata only (not runtime values)
+- **New type inference package** (`src/mapper/type_inference/`)
+  - `TypeInferrer` for validating type annotations against inferred types
+  - Infers types from literals, function calls, and implicit returns
+  - Detects functions with no return statement (infers None with high confidence)
+  - Uses sets internally for efficient type deduplication
+  - Sorted union type output for consistent comparisons
+  - Validates return types match inferred types
+- **User journey documentation**
+  - "Analysing a Codebase" guide with step-by-step workflow
+  - Examples of analysis output and Neo4j queries
+  - Full-graph Cypher query examples
+  - Troubleshooting common issues
+- **Technical documentation**
+  - AST Parser architecture and usage (what gets extracted vs. what doesn't)
+  - Type Inference system design (confidence levels, limitations)
+  - Analyser orchestration patterns (error handling, progress tracking)
+
 ## [0.2.7] - 2026-03-22
 
 ### Fixed
