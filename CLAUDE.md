@@ -392,4 +392,4 @@ just mapper [args]    # Run CLI tool
 ---
 
 **Last Updated**: 2026-03-21
-**Current Version**: 0.2.3
+**Current Version**: 0.2.4
