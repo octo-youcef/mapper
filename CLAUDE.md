@@ -61,12 +61,20 @@ When implementing new features, **ALWAYS** follow this order:
    - Update `docs/technical/README.md` index
    - Explain design decisions and integration points
 5. Update CHANGELOG.md with user-facing changes
-6. Run `just lint` and fix all issues
-7. Run `just test-coverage` and verify coverage passes
-8. Push commits
-9. Create **draft PR** for early review
-10. Wait for CI to pass (use `gh pr view <number> --json statusCheckRollup`)
-11. Mark PR as ready for review
+6. **Update README.md** if adding features or changing user-facing behavior
+   - Update CLI examples if commands changed
+   - Add new features to feature list
+   - Update usage instructions if needed
+7. **Review existing documentation for accuracy**
+   - Check user journey docs for outdated commands or workflows
+   - Verify technical docs reflect current architecture
+   - Fix any inconsistencies found
+8. Run `just lint` and fix all issues
+9. Run `just test-coverage` and verify coverage passes
+10. Push commits
+11. Create **draft PR** for early review
+12. Wait for CI to pass (use `gh pr view <number> --json statusCheckRollup`)
+13. Mark PR as ready for review
 
 ### Question-Asking Protocol
 
@@ -388,6 +396,8 @@ just mapper [args]    # Run CLI tool
 ### Before PR
 - ✅ Technical docs written (if architectural changes)
 - ✅ CHANGELOG.md updated with user-facing changes
+- ✅ README.md updated (if features or commands changed)
+- ✅ Existing docs reviewed for accuracy
 - ✅ All tests pass: `just test`
 - ✅ Coverage passes: `just test-coverage`
 - ✅ Version bumped: `just version <type>`
