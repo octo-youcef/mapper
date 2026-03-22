@@ -1,15 +1,15 @@
 # Mapper (Application Mapper)
 
-![Version](https://img.shields.io/badge/version-0.2.7-blue.svg)
+![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)
 ![Tests](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/octo-youcef/3424657d04826a3196811985d2f13687/raw/mapper-tests.json)
 ![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/octo-youcef/3424657d04826a3196811985d2f13687/raw/mapper-coverage.json)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)
 
-AST-based Python code analyzer that maps application structure and relationships into a Neo4j graph database, with CLI and web UI for exploration.
+AST-based Python code analyser that maps application structure and relationships into a Neo4j graph database, with CLI and web UI for exploration.
 
 ## Overview
 
-Mapper helps you understand complex Python applications by analyzing their Abstract Syntax Trees (AST) and creating an interactive graph representation of classes, functions, methods, imports, and their relationships.
+Mapper helps you understand complex Python applications by analysing their Abstract Syntax Trees (AST) and creating an interactive graph representation of classes, functions, methods, imports, and their relationships.
 
 ### Key Features
 
@@ -18,7 +18,7 @@ Mapper helps you understand complex Python applications by analyzing their Abstr
 - **Incremental Updates**: Track versions and update only what changed
 - **CLI Tool**: Powerful command-line interface built with Typer
 - **Web UI**: Interactive visualization and exploration (FastAPI + React)
-- **Package-Wide Analysis**: Analyze entire Python packages from a directory
+- **Package-Wide Analysis**: Analyse entire Python packages from a directory
 
 ### Use Cases
 
@@ -149,7 +149,7 @@ mapper/
 │       ├── cli/            # CLI commands
 │       ├── parser.py       # AST parsing
 │       ├── graph.py        # Neo4j operations
-│       ├── analyzer/       # Analysis packages
+│       ├── analyser/       # Analysis packages
 │       ├── api.py          # FastAPI backend
 │       └── config_manager/ # Configuration management
 ├── tests/                  # Test suite
