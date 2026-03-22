@@ -9,9 +9,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.6] - 2026-03-22
 
+### Changed
+- **Updated PR workflow in CLAUDE.md** with comprehensive pre-PR checklist
+  - Added step to update README.md when features or commands change
+  - Added step to review existing documentation for accuracy
+  - Updated "Before PR" checklist with all documentation requirements
+
+### Fixed
+- **Corrected CLI API documentation** across all docs
+  - Fixed `mapper analyze` → `mapper analyse start` in user journey docs
+  - Fixed `mapper list` → `mapper analyse list` in examples
+  - Fixed `mapper config show` → `mapper config get/set/edit` in technical docs
+  - Updated docs/user-journeys/01-initial-setup.md with correct commands
+  - Updated docs/user-journeys/02-configuration-management.md with correct API
+  - Updated docs/technical/cli-commands.md with accurate command references
+
 ## [0.2.5] - 2026-03-22
 
+### Changed
+- **Reorganized test structure** for clarity and separation of concerns
+  - Created `tests/unit/` directory for unit tests
+  - Created `tests/integration/` directory for integration tests
+  - Moved all existing tests into appropriate directories
+  - Split CI into separate jobs: unit tests (with 65% coverage requirement) and integration tests (no coverage requirement)
+  - Updated justfile with `test-unit` and `test-integration` commands
+  - Updated `test-coverage` command to only check unit test coverage
+
+### Added
+- New justfile commands: `test-unit` and `test-integration` for running tests separately
+- Separate CI jobs for unit and integration tests with different coverage expectations
+
 ## [0.2.4] - 2026-03-22
+
+### Fixed
+- **Corrected project naming inconsistencies** throughout codebase
+  - Fixed package name: `m-apper` → `mapper` in pyproject.toml
+  - Fixed display name: `MApper` → `Mapper` (title case) in all documentation, docstrings, and comments
+  - Updated README.md with correct repository URL and package name
+  - Updated all CLI module docstrings with consistent naming
+  - Ensured consistent "Mapper" branding across the project
 
 ## [0.2.3] - 2026-03-21
 
