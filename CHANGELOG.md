@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-03-23
+
+### Fixed
+- **Type annotation bug**: `get_nested_value` return type corrected to `Any | None` (was incorrectly typed as `Any`)
+  - Function returns `None` when key not found, as documented in docstring
+  - Identified by running analyser on mapper codebase itself
+- **Removed deprecated AST node handling**: Eliminated `ast.Str`, `ast.Num`, and `ast.NameConstant` checks
+  - These nodes are deprecated in Python 3.8+ and removed in Python 3.14
+  - All cases now handled by `ast.Constant` (Python 3.10+ compatible)
+  - Eliminates 10 deprecation warnings from test output
+
 ## [0.3.0] - 2026-03-22
 
 ### Added
