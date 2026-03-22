@@ -24,4 +24,4 @@ class TestInitCommand:
         """Test init command help is accessible."""
         result = runner.invoke(app, ["init", "--help"])
         assert result.exit_code == 0
-        assert "Initialize MApper configuration interactively" in result.stdout
+        assert "Initialize Mapper configuration interactively" in result.stdout

@@ -1,15 +1,15 @@
 # User Journey: Configuration Management
 
-This guide covers how to view, modify, and manage MApper's configuration after initial setup.
+This guide covers how to view, modify, and manage Mapper's configuration after initial setup.
 
 ## Prerequisites
 
-- MApper installed and initial setup complete (see [Initial Setup](01-initial-setup.md))
+- Mapper installed and initial setup complete (see [Initial Setup](01-initial-setup.md))
 - Environment variables `NEO4J_USER` and `NEO4J_PASSWORD` set
 
 ## Overview
 
-MApper uses a two-tier configuration system:
+Mapper uses a two-tier configuration system:
 
 - **Global config**: `~/.config/mapper/config.toml` - Applies to all projects
 - **Local config**: `.mapper.toml` - Project-specific settings (overrides global)

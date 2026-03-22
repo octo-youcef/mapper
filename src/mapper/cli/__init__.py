@@ -1,11 +1,11 @@
-"""CLI entrypoint for MApper using Typer."""
+"""CLI entrypoint for Mapper using Typer."""
 
 import typer
 
 from mapper.cli import analyse, config, queries, setup, status, version
 
 # Main application
-app = typer.Typer(help="MApper - Application Mapper for Python code")
+app = typer.Typer(help="Mapper - Application Mapper for Python code")
 
 # Register core commands directly on main app
 app.command(name="init")(setup.init)

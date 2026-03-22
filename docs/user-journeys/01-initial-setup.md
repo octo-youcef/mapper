@@ -1,6 +1,6 @@
 # User Journey: Initial Setup
 
-This guide walks you through setting up MApper for the first time, from starting Neo4j to creating your configuration.
+This guide walks you through setting up Mapper for the first time, from starting Neo4j to creating your configuration.
 
 ## Prerequisites
 
@@ -10,7 +10,7 @@ Before starting, ensure you have:
 - **Docker and Docker Compose** installed and running
 - **uv** package manager installed ([installation guide](https://docs.astral.sh/uv/))
 - **just** task runner installed ([installation guide](https://github.com/casey/just))
-- MApper repository cloned: `git clone git@github.com:octo-youcef/mapper.git`
+- Mapper repository cloned: `git clone git@github.com:octo-youcef/mapper.git`
 
 ## Steps
 
@@ -49,7 +49,7 @@ This command will:
 
 ### 3. Set Environment Variables
 
-MApper requires Neo4j credentials via environment variables (not stored in config files for security):
+Mapper requires Neo4j credentials via environment variables (not stored in config files for security):
 
 ```bash
 export NEO4J_USER=neo4j
@@ -275,7 +275,7 @@ mapper config get
    # Find what's using the port
    lsof -i :7474
 
-   # Stop the conflicting process or change MApper's port in docker-compose.yml
+   # Stop the conflicting process or change Mapper's port in docker-compose.yml
    ```
 
 3. **Permission denied**
@@ -305,7 +305,7 @@ uv pip install -e .
 
 ## Next Steps
 
-Now that MApper is set up, you can:
+Now that Mapper is set up, you can:
 
 - **Analyze code**: See [Analyzing a Package](02-analyzing-package.md)
 - **Configure settings**: See [Configuration Management](03-configuration-management.md)

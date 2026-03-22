@@ -1,4 +1,4 @@
-"""Setup commands for MApper CLI."""
+"""Setup commands for Mapper CLI."""
 
 import typer
 from rich.console import Console
@@ -17,7 +17,7 @@ def init(
         False, "--global", help="Create global config instead of local"
     ),
 ) -> None:
-    """Initialize MApper configuration interactively.
+    """Initialize Mapper configuration interactively.
 
     This command will:
     1. Check for required environment variables
@@ -32,8 +32,8 @@ def init(
     """
     orchestrator = setup_orchestrator.SetupOrchestrator()
 
-    console.print("\n[bold cyan]MApper Setup[/bold cyan]")
-    console.print("Let's configure your MApper installation.\n")
+    console.print("\n[bold cyan]Mapper Setup[/bold cyan]")
+    console.print("Let's configure your Mapper installation.\n")
 
     # Step 1: Check for required environment variables
     console.print("[bold]Step 1:[/bold] Checking environment variables...")

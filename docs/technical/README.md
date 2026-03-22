@@ -1,6 +1,6 @@
 # Technical Documentation
 
-This directory contains technical documentation for MApper developers.
+This directory contains technical documentation for Mapper developers.
 
 ## Contents
 

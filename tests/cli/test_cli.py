@@ -14,7 +14,7 @@ class TestCLI:
         """Test main CLI help output."""
         result = runner.invoke(app, ["--help"])
         assert result.exit_code == 0
-        assert "MApper - Application Mapper for Python code" in result.stdout
+        assert "Mapper - Application Mapper for Python code" in result.stdout
         assert "init" in result.stdout
         assert "analyse" in result.stdout
         assert "config" in result.stdout

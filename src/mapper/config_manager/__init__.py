@@ -1,4 +1,4 @@
-"""Configuration management package for MApper."""
+"""Configuration management package for Mapper."""
 
 from mapper.config_manager.credentials import get_neo4j_credentials
 from mapper.config_manager.manager import ConfigManager

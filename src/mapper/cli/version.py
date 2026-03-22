@@ -1,4 +1,4 @@
-"""Version command for MApper CLI."""
+"""Version command for Mapper CLI."""
 
 import typer
 from rich.console import Console
@@ -12,5 +12,5 @@ app = typer.Typer(help="Version commands")
 
 @app.command()
 def version() -> None:
-    """Show MApper version information."""
-    console.print(f"MApper version: [bold]{__version__}[/bold]")
+    """Show Mapper version information."""
+    console.print(f"Mapper version: [bold]{__version__}[/bold]")

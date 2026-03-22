@@ -1,4 +1,4 @@
-"""Analyser commands for MApper CLI."""
+"""Analyser commands for Mapper CLI."""
 
 from typing import Annotated
 

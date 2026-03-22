@@ -1,4 +1,4 @@
-"""Query management commands for MApper CLI."""
+"""Query management commands for Mapper CLI."""
 
 import typer
 from rich.console import Console

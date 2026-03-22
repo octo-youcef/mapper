@@ -221,7 +221,7 @@ class TestInitWorkflow:
 
         # Verify output
         assert result.exit_code == 0
-        assert "MApper Setup" in result.stdout
+        assert "Mapper Setup" in result.stdout
         assert "Step 1: Checking environment variables" in result.stdout
         assert "NEO4J_USER: neo4j" in result.stdout
         assert "Step 2: Neo4j connection details" in result.stdout

@@ -1,4 +1,4 @@
-"""Setup orchestrator package for MApper initialization."""
+"""Setup orchestrator package for Mapper initialization."""
 
 from mapper.setup_orchestrator.orchestrator import SetupOrchestrator, SetupResult
 

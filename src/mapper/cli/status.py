@@ -1,4 +1,4 @@
-"""Status command for MApper CLI."""
+"""Status command for Mapper CLI."""
 
 import typer
 from rich.console import Console

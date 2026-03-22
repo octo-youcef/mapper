@@ -1,4 +1,4 @@
-"""Configuration data models for MApper."""
+"""Configuration data models for Mapper."""
 
 import attrs
 
@@ -45,7 +45,7 @@ class OutputConfig:
 
 @attrs.define
 class Config:
-    """MApper configuration."""
+    """Mapper configuration."""
 
     neo4j: Neo4jConfig = attrs.field(factory=Neo4jConfig)
     analysis: AnalysisConfig = attrs.field(factory=AnalysisConfig)

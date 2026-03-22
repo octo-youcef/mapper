@@ -1,10 +1,10 @@
 # Configuration System
 
-This document explains MApper's configuration system architecture, file formats, and precedence rules.
+This document explains Mapper's configuration system architecture, file formats, and precedence rules.
 
 ## Overview
 
-MApper uses a two-tier TOML-based configuration system:
+Mapper uses a two-tier TOML-based configuration system:
 
 - **Global config**: `~/.config/mapper/config.toml` - User-wide defaults
 - **Local config**: `.mapper.toml` - Project-specific overrides
@@ -13,7 +13,7 @@ Configuration is loaded and merged at runtime, with local settings taking preced
 
 ## Configuration Precedence
 
-When MApper loads configuration, values are resolved in this order (highest to lowest priority):
+When Mapper loads configuration, values are resolved in this order (highest to lowest priority):
 
 1. **Local config** (`.mapper.toml` in current directory)
 2. **Global config** (`~/.config/mapper/config.toml`)
@@ -141,7 +141,7 @@ Format can be overridden per-command with `--format` flag.
 
 ### Required for Operation
 
-These environment variables **must** be set to use MApper:
+These environment variables **must** be set to use Mapper:
 
 - `NEO4J_USER` - Neo4j username
 - `NEO4J_PASSWORD` - Neo4j password

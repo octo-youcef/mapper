@@ -1,6 +1,6 @@
 # CLI Commands Reference
 
-This document describes all MApper CLI commands and their functionality.
+This document describes all Mapper CLI commands and their functionality.
 
 **Status**: Phase 1 - Command structure implemented, full functionality pending.
 
@@ -8,7 +8,7 @@ This document describes all MApper CLI commands and their functionality.
 
 ## Command Structure
 
-MApper uses a command group structure for better organization:
+Mapper uses a command group structure for better organization:
 
 ```bash
 # Core commands
@@ -95,7 +95,7 @@ mapper status
 
 ### `mapper version`
 
-Show MApper version information.
+Show Mapper version information.
 
 **Status**: ✅ Implemented
 
@@ -106,7 +106,7 @@ mapper version
 
 **Output**:
 ```
-MApper version: 0.1.0
+Mapper version: 0.1.0
 ```
 
 ---

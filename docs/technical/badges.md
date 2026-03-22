@@ -4,7 +4,7 @@ This document explains how the README badge system works, how to update badges, 
 
 ## Overview
 
-MApper uses a combination of static and dynamic badges at the top of the README:
+Mapper uses a combination of static and dynamic badges at the top of the README:
 
 ```markdown
 ![Version](https://img.shields.io/badge/version-0.1.2-blue.svg)

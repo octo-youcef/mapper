@@ -1,4 +1,4 @@
-"""Config management commands for MApper CLI."""
+"""Config management commands for Mapper CLI."""
 
 import os
 import subprocess

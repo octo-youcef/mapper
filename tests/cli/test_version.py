@@ -15,4 +15,4 @@ class TestVersionCommand:
         """Test version command shows actual version."""
         result = runner.invoke(app, ["version"])
         assert result.exit_code == 0
-        assert f"MApper version: {__version__}" in result.stdout
+        assert f"Mapper version: {__version__}" in result.stdout

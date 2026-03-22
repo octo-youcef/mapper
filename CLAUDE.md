@@ -1,4 +1,4 @@
-# Claude Code Instructions for MApper
+# Claude Code Instructions for Mapper
 
 This file contains project-specific instructions for Claude Code when working with this repository. General workflow preferences are in Claude's MEMORY.md and apply unless overridden here.
 

@@ -1,4 +1,4 @@
-"""Configuration manager for MApper."""
+"""Configuration manager for Mapper."""
 
 import sys
 from pathlib import Path
@@ -21,7 +21,7 @@ from mapper.config_manager import models
 
 
 class ConfigManager:
-    """Manages MApper configuration files and loading."""
+    """Manages Mapper configuration files and loading."""
 
     @staticmethod
     def get_global_config_path() -> Path:

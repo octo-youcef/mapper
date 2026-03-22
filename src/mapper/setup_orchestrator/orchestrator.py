@@ -1,4 +1,4 @@
-"""Setup orchestrator for MApper initialization."""
+"""Setup orchestrator for Mapper initialization."""
 
 from pathlib import Path
 
@@ -18,7 +18,7 @@ class SetupResult:
 
 
 class SetupOrchestrator:
-    """Orchestrates the MApper initialization process."""
+    """Orchestrates the Mapper initialization process."""
 
     def __init__(self) -> None:
         """Initialize setup orchestrator."""

@@ -1,1 +1,1 @@
-"""Integration tests for MApper workflows."""
+"""Integration tests for Mapper workflows."""

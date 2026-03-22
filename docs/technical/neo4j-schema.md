@@ -1,10 +1,10 @@
 # Neo4j Graph Schema
 
-This document describes the Neo4j database schema used by MApper, including node types, relationships, constraints, and indexes.
+This document describes the Neo4j database schema used by Mapper, including node types, relationships, constraints, and indexes.
 
 ## Overview
 
-MApper creates and maintains a graph database schema optimized for querying Python code structure and relationships. The schema is initialized automatically by `mapper init` and is designed to be:
+Mapper creates and maintains a graph database schema optimized for querying Python code structure and relationships. The schema is initialized automatically by `mapper init` and is designed to be:
 
 - **Idempotent**: Safe to run multiple times
 - **Performance-optimized**: Indexes on frequently queried fields
@@ -45,7 +45,7 @@ If a constraint or index already exists, it's skipped without error.
 
 ## Node Types
 
-MApper will use the following node types (currently constraints/indexes only):
+Mapper will use the following node types (currently constraints/indexes only):
 
 ### Module
 

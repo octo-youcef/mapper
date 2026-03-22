@@ -1,4 +1,4 @@
-# MApper (Application Mapper)
+# Mapper (Application Mapper)
 
 ![Version](https://img.shields.io/badge/version-0.2.3-blue.svg)
 ![Tests](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/octo-youcef/3424657d04826a3196811985d2f13687/raw/mapper-tests.json)
@@ -9,7 +9,7 @@ AST-based Python code analyzer that maps application structure and relationships
 
 ## Overview
 
-MApper helps you understand complex Python applications by analyzing their Abstract Syntax Trees (AST) and creating an interactive graph representation of classes, functions, methods, imports, and their relationships.
+Mapper helps you understand complex Python applications by analyzing their Abstract Syntax Trees (AST) and creating an interactive graph representation of classes, functions, methods, imports, and their relationships.
 
 ### Key Features
 
@@ -51,8 +51,8 @@ MApper helps you understand complex Python applications by analyzing their Abstr
 
 ```bash
 # Clone the repository
-git clone git@github.com:octo-youcef/m-app.git
-cd m-app
+git clone git@github.com:octo-youcef/mapper.git
+cd mapper
 
 # Install dependencies
 just install
@@ -140,15 +140,15 @@ just fix
 ## Project Structure
 
 ```
-m-app/
+mapper/
 ├── src/
-│   └── m_app/              # Main package
-│       ├── cli.py          # Typer CLI entrypoint
+│   └── mapper/             # Main package
+│       ├── cli/            # CLI commands
 │       ├── parser.py       # AST parsing
 │       ├── graph.py        # Neo4j operations
-│       ├── analyzer.py     # Relationship extraction
+│       ├── analyzer/       # Analysis packages
 │       ├── api.py          # FastAPI backend
-│       └── config.py       # Configuration management
+│       └── config_manager/ # Configuration management
 ├── tests/                  # Test suite
 ├── docs/                   # Documentation
 │   ├── technical/          # Technical documentation
@@ -222,7 +222,3 @@ Use `just version [patch|minor|major]` to bump the version. Tags are created aut
 ## Support
 
 For issues and questions, please open a GitHub issue.
-
----
-
-**Current Version**: 0.1.0
