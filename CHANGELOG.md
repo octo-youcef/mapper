@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Status command** for comprehensive system health checking
+  - `mapper status` command to verify configuration and Neo4j connectivity
+  - Shows config file locations (global/local) and active source
+  - Displays Neo4j connection details (URI, database, server version)
+  - Optional `--detailed` flag for database statistics (node counts, relationships)
+  - Exit code 0 for success/warnings, exit code 1 for errors (CI/CD integration)
+  - New `status_checker` package with modular architecture
+    - `StatusChecker` class for orchestrating health checks
+    - Data models: `ConfigStatus`, `ConnectionStatus`, `DatabaseStats`, `SystemStatus`
+    - Separate business logic from CLI presentation
+  - Rich tables with color-coded output
+  - User journey documentation: "Checking System Status"
+  - Technical documentation: Status checker architecture and testing
+
 ## [0.3.2] - 2026-03-23
 
 ### Added

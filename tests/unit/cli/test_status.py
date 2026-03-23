@@ -2,7 +2,6 @@
 
 from unittest.mock import Mock, patch
 
-import pytest
 from typer.testing import CliRunner
 
 from mapper.cli import app as cli_app
@@ -115,7 +114,10 @@ class TestStatusCommand:
         # Mock failed connection
         with patch("mapper.status_checker.checker.graph.Neo4jConnection") as mock_conn_class:
             mock_conn = Mock()
-            mock_conn.test_connection.return_value = (False, "Connection failed: Service unavailable")
+            mock_conn.test_connection.return_value = (
+                False,
+                "Connection failed: Service unavailable",
+            )
             mock_conn.close.return_value = None
             mock_conn.uri = "bolt://localhost:7687"
             mock_conn.database = "neo4j"

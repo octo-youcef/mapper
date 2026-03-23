@@ -144,21 +144,26 @@ class StatusChecker:
             with connection.driver.session(database=connection.database) as session:
                 # Get total node count
                 result = session.run("MATCH (n) RETURN count(n) as count")
-                total_nodes = result.single()["count"]
+                record = result.single()
+                total_nodes = record["count"] if record else 0
 
                 # Get node counts by label
                 result = session.run("MATCH (n:Module) RETURN count(n) as count")
-                modules = result.single()["count"]
+                record = result.single()
+                modules = record["count"] if record else 0
 
                 result = session.run("MATCH (n:Class) RETURN count(n) as count")
-                classes = result.single()["count"]
+                record = result.single()
+                classes = record["count"] if record else 0
 
                 result = session.run("MATCH (n:Function) RETURN count(n) as count")
-                functions = result.single()["count"]
+                record = result.single()
+                functions = record["count"] if record else 0
 
                 # Get relationship count
                 result = session.run("MATCH ()-[r]->() RETURN count(r) as count")
-                relationships = result.single()["count"]
+                record = result.single()
+                relationships = record["count"] if record else 0
 
             connection.close()
 

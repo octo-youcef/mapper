@@ -11,6 +11,7 @@ This directory contains technical documentation for Mapper developers.
 - **[AST Parser](ast-parser.md)**: Python code parsing and structure extraction
 - **[Type Inference](type-inference.md)**: Type inference and validation system
 - **[Analyzer](analyser.md)**: Code analysis orchestration and workflow
+- **[Status Checker](status-checker.md)**: System health checking and diagnostics
 - **Architecture**: System design and architectural decisions _(coming soon)_
 - **API Documentation**: FastAPI backend endpoints _(coming soon)_
 - **Protocols**: Protocol definitions and their implementations _(coming soon)_

@@ -35,7 +35,9 @@ def status(
     _display_config_status(system_status.config)
 
     # Check for warnings/errors before showing connection
-    has_config = system_status.config.global_config_exists or system_status.config.local_config_exists
+    has_config = (
+        system_status.config.global_config_exists or system_status.config.local_config_exists
+    )
 
     if not has_config:
         console.print("\n[yellow]⚠ No configuration found. Run 'mapper init' to set up.[/yellow]")
@@ -51,7 +53,9 @@ def status(
             )
             raise typer.Exit(1)
         else:
-            console.print("\n[yellow]⚠ Configuration incomplete. Run 'mapper init' to complete setup.[/yellow]")
+            console.print(
+                "\n[yellow]⚠ Configuration incomplete. Run 'mapper init' to complete setup.[/yellow]"
+            )
             console.print()
             return
 
@@ -66,7 +70,9 @@ def status(
         console.print("\n[red]✗ Cannot connect to Neo4j. Ensure the server is running.[/red]")
         raise typer.Exit(1)
     elif not has_config:
-        console.print("\n[yellow]⚠ Configuration incomplete. Run 'mapper init' to complete setup.[/yellow]")
+        console.print(
+            "\n[yellow]⚠ Configuration incomplete. Run 'mapper init' to complete setup.[/yellow]"
+        )
     else:
         console.print("\n[green]✓ All systems operational[/green]")
 
