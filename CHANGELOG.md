@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-03-23
+
+### Added
+- **Database name configuration** in Neo4j settings
+  - Add `database` field to config with default "neo4j"
+  - Prompt for database name during `mapper init`
+  - Automatically create database if it doesn't exist (Enterprise/AuraDB only)
+  - Show database name in init summary
+
+### Changed
+- **Init workflow** updated to include database configuration
+  - Prompts for database name with sensible default
+  - Creates database before initializing schema
+  - Gracefully handles Community Edition (database creation may fail)
+
 ## [0.3.1] - 2026-03-23
 
 ### Fixed
@@ -18,6 +33,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - All cases now handled by `ast.Constant` (Python 3.10+ compatible)
   - Eliminates 10 deprecation warnings from test output
 
+  - Creates database before initializing schema
+  - Gracefully handles Community Edition (database creation may fail)
+>>>>>>> 1c3dbd7 (Bump version: 0.3.0 → 0.3.1)
 ## [0.3.0] - 2026-03-22
 
 ### Added
