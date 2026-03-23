@@ -33,9 +33,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - All cases now handled by `ast.Constant` (Python 3.10+ compatible)
   - Eliminates 10 deprecation warnings from test output
 
-  - Creates database before initializing schema
-  - Gracefully handles Community Edition (database creation may fail)
->>>>>>> 1c3dbd7 (Bump version: 0.3.0 → 0.3.1)
 ## [0.3.0] - 2026-03-22
 
 ### Added
