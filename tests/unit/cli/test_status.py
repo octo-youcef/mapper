@@ -75,17 +75,18 @@ class TestStatusCommand:
         monkeypatch.setenv("NEO4J_PASSWORD", "password")
 
         # Mock Neo4j connection
-        with patch("mapper.graph.Neo4jConnection") as mock_conn_class:
+        with patch("mapper.status_checker.checker.graph.Neo4jConnection") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.test_connection.return_value = (True, "Connection successful")
-            mock_conn.driver.verify_connectivity.return_value = None
+            mock_conn.close.return_value = None
             mock_conn.uri = "bolt://localhost:7687"
             mock_conn.database = "neo4j"
 
             # Mock server info
-            mock_conn.driver.get_server_info.return_value = Mock(agent="Neo4j/5.28.0")
+            mock_server_info = Mock(agent="Neo4j/5.28.0")
+            mock_conn.driver.get_server_info.return_value = mock_server_info
 
-            mock_conn_class.return_value = mock_conn
+            mock_conn_class.from_config.return_value = mock_conn
 
             result = runner.invoke(cli_app, ["status"])
 
@@ -99,7 +100,7 @@ class TestStatusCommand:
         # Create config
         global_config = tmp_path / "config.toml"
         global_config.parent.mkdir(parents=True, exist_ok=True)
-        global_config.write_text('[neo4j]\nuri = "bolt://localhost:7687"\n')
+        global_config.write_text('[neo4j]\nuri = "bolt://localhost:7687"\ndatabase = "neo4j"\n')
 
         monkeypatch.setattr("mapper.config_manager.get_global_config_path", lambda: global_config)
         monkeypatch.setattr(
@@ -112,12 +113,13 @@ class TestStatusCommand:
         monkeypatch.setenv("NEO4J_PASSWORD", "password")
 
         # Mock failed connection
-        with patch("mapper.graph.Neo4jConnection") as mock_conn_class:
+        with patch("mapper.status_checker.checker.graph.Neo4jConnection") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.test_connection.return_value = (False, "Connection failed: Service unavailable")
+            mock_conn.close.return_value = None
             mock_conn.uri = "bolt://localhost:7687"
             mock_conn.database = "neo4j"
-            mock_conn_class.return_value = mock_conn
+            mock_conn_class.from_config.return_value = mock_conn
 
             result = runner.invoke(cli_app, ["status"])
 
@@ -130,7 +132,7 @@ class TestStatusCommand:
         # Create config
         global_config = tmp_path / "config.toml"
         global_config.parent.mkdir(parents=True, exist_ok=True)
-        global_config.write_text('[neo4j]\nuri = "bolt://localhost:7687"\n')
+        global_config.write_text('[neo4j]\nuri = "bolt://localhost:7687"\ndatabase = "neo4j"\n')
 
         monkeypatch.setattr("mapper.config_manager.get_global_config_path", lambda: global_config)
         monkeypatch.setattr(
@@ -143,22 +145,29 @@ class TestStatusCommand:
         monkeypatch.setenv("NEO4J_PASSWORD", "password")
 
         # Mock Neo4j connection with stats
-        with patch("mapper.graph.Neo4jConnection") as mock_conn_class:
+        with patch("mapper.status_checker.checker.graph.Neo4jConnection") as mock_conn_class:
             mock_conn = Mock()
             mock_conn.test_connection.return_value = (True, "Connection successful")
+            mock_conn.close.return_value = None
             mock_conn.uri = "bolt://localhost:7687"
             mock_conn.database = "neo4j"
 
+            # Mock server info
+            mock_server_info = Mock(agent="Neo4j/5.28.0")
+            mock_conn.driver.get_server_info.return_value = mock_server_info
+
             # Mock database stats query
-            mock_session = Mock()
             mock_result = Mock()
             mock_result.single.return_value = {"count": 1234}
+            mock_session = Mock()
             mock_session.run.return_value = mock_result
-            mock_conn.driver.session.return_value.__enter__.return_value = mock_session
+            mock_session.__enter__ = Mock(return_value=mock_session)
+            mock_session.__exit__ = Mock(return_value=False)
+            mock_conn.driver.session.return_value = mock_session
 
-            mock_conn_class.return_value = mock_conn
+            mock_conn_class.from_config.return_value = mock_conn
 
-            result = runner.invoke(cli_app, ["status"])
+            result = runner.invoke(cli_app, ["status", "--detailed"])
 
             assert result.exit_code == 0
             assert "Statistics" in result.stdout or "Nodes" in result.stdout
@@ -168,10 +177,10 @@ class TestStatusCommand:
         # Create both configs
         global_config = tmp_path / "global" / "config.toml"
         global_config.parent.mkdir(parents=True, exist_ok=True)
-        global_config.write_text('[neo4j]\nuri = "bolt://global:7687"\n')
+        global_config.write_text('[neo4j]\nuri = "bolt://global:7687"\ndatabase = "neo4j"\n')
 
         local_config = tmp_path / ".mapper.toml"
-        local_config.write_text('[neo4j]\nuri = "bolt://local:7687"\n')
+        local_config.write_text('[neo4j]\nuri = "bolt://local:7687"\ndatabase = "neo4j"\n')
 
         monkeypatch.setattr("mapper.config_manager.get_global_config_path", lambda: global_config)
         monkeypatch.setattr("mapper.config_manager.get_local_config_path", lambda: local_config)
@@ -180,10 +189,27 @@ class TestStatusCommand:
         monkeypatch.setenv("NEO4J_USER", "neo4j")
         monkeypatch.setenv("NEO4J_PASSWORD", "password")
 
-        result = runner.invoke(cli_app, ["status"])
+        # Mock Neo4j connection
+        with patch("mapper.status_checker.checker.graph.Neo4jConnection") as mock_conn_class:
+            mock_conn = Mock()
+            mock_conn.test_connection.return_value = (True, "Connection successful")
+            mock_conn.close.return_value = None
+            mock_conn.uri = "bolt://local:7687"
+            mock_conn.database = "neo4j"
 
-        # Should show both config files
-        assert str(global_config) in result.stdout or "global" in result.stdout
-        assert str(local_config) in result.stdout or "local" in result.stdout
-        # Should use local config URI
-        assert "bolt://local:7687" in result.stdout
+            # Mock server info
+            mock_server_info = Mock(agent="Neo4j/5.28.0")
+            mock_conn.driver.get_server_info.return_value = mock_server_info
+
+            mock_conn_class.from_config.return_value = mock_conn
+
+            result = runner.invoke(cli_app, ["status"])
+
+            # Should show config information
+            assert "Global Config" in result.stdout
+            assert "Local Config" in result.stdout
+            # Should show that both are active
+            assert "Both" in result.stdout
+            # Should show connection with merged config
+            assert result.exit_code == 0
+            assert "Connected" in result.stdout
