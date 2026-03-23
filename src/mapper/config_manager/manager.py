@@ -124,6 +124,7 @@ class ConfigManager:
         """
         content = """[neo4j]
 uri = "bolt://localhost:7687"
+# database = "neo4j"  # Database name (default: neo4j)
 # timeout = 30  # Connection timeout in seconds
 # max_connection_pool_size = 50
 # encrypted = false  # Use encryption for connection

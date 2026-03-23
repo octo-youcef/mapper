@@ -49,10 +49,13 @@ def init(
     console.print(f"[green]✓[/green] NEO4J_USER: {user}")
     console.print("[green]✓[/green] NEO4J_PASSWORD: ********\n")
 
-    # Step 2: Ask for Neo4j URI
+    # Step 2: Ask for Neo4j connection details
     console.print("[bold]Step 2:[/bold] Neo4j connection details")
     default_uri = "bolt://localhost:7687"
     neo4j_uri = Prompt.ask("Neo4j URI", default=default_uri)
+
+    default_database = "neo4j"
+    neo4j_database = Prompt.ask("Database name", default=default_database)
     console.print()
 
     # Step 3: Ask if they want to test connection
@@ -66,7 +69,7 @@ def init(
     if test_connection:
         console.print("Testing connection to Neo4j...")
 
-        connection_result = orchestrator.test_connection(neo4j_uri, user, password)
+        connection_result = orchestrator.test_connection(neo4j_uri, user, password, neo4j_database)
         if connection_result.success:
             console.print(f"[green]✓[/green] {connection_result.message}\n")
             connection_successful = True
@@ -81,14 +84,23 @@ def init(
     initialize_db = False
     if connection_successful:
         initialize_db = Confirm.ask(
-            "[bold]Step 4:[/bold] Initialize database schema (constraints and indexes)?",
+            "[bold]Step 4:[/bold] Create database and initialize schema (constraints and indexes)?",
             default=True,
         )
         console.print()
 
         if initialize_db:
-            console.print("Initializing database schema...")
+            console.print(f"Creating database '{neo4j_database}' if it doesn't exist...")
+            create_result = orchestrator.create_database()
+            if create_result.success:
+                console.print(f"[green]✓[/green] {create_result.message}\n")
+            else:
+                console.print(f"[yellow]⚠[/yellow] {create_result.message}")
+                console.print(
+                    "[dim]Note: Database creation requires Neo4j Enterprise Edition or AuraDB.[/dim]\n"
+                )
 
+            console.print("Initializing database schema...")
             init_result = orchestrator.initialize_database()
             if init_result.success:
                 console.print(f"[green]✓[/green] {init_result.message}\n")
@@ -119,7 +131,9 @@ def init(
             console.print("[yellow]Setup cancelled.[/yellow]")
             raise typer.Exit(0)
 
-    config_result = orchestrator.create_config_file(config_path, neo4j_uri, default_uri)
+    config_result = orchestrator.create_config_file(
+        config_path, neo4j_uri, neo4j_database, default_uri, default_database
+    )
     if config_result.success:
         console.print(f"[green]✓[/green] {config_result.message}\n")
     else:
@@ -134,6 +148,7 @@ def init(
     console.print("\n[bold]Summary:[/bold]")
     console.print(f"  • Config file: {config_path}")
     console.print(f"  • Neo4j URI: {neo4j_uri}")
+    console.print(f"  • Database: {neo4j_database}")
     console.print(f"  • Connection tested: {'Yes' if test_connection else 'No'}")
     console.print(f"  • Database initialized: {'Yes' if initialize_db else 'No'}")
 

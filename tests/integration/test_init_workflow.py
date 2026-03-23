@@ -74,11 +74,11 @@ class TestInitWorkflow:
         monkeypatch.setenv("NEO4J_USER", "neo4j")
         monkeypatch.setenv("NEO4J_PASSWORD", "password")
 
-        # Mock prompts - press enter for default URI, 'n' for connection test
+        # Mock prompts - press enter for default URI, default database, 'n' for connection test
         result = runner.invoke(
             cli_app,
             ["init"],
-            input="\nn\n",  # Enter for default URI, 'n' for connection test
+            input="\n\nn\n",  # Enter for default URI, default database, 'n' for connection test
         )
 
         assert result.exit_code == 0
@@ -99,12 +99,15 @@ class TestInitWorkflow:
         monkeypatch.setenv("NEO4J_USER", "neo4j")
         monkeypatch.setenv("NEO4J_PASSWORD", "password")
 
-        # Mock prompts - custom URI, yes to connection test, yes to init DB
+        # Mock Neo4j connection to also handle database creation
+        mock_neo4j_connection.create_database_if_not_exists.return_value = None
+
+        # Mock prompts - custom URI, default database, yes to connection test, yes to init DB
         custom_uri = "bolt://custom-host:7687"
         result = runner.invoke(
             cli_app,
             ["init"],
-            input=f"{custom_uri}\ny\ny\n",
+            input=f"{custom_uri}\n\ny\ny\n",  # custom URI, default database, test, init
         )
 
         assert result.exit_code == 0
@@ -140,11 +143,11 @@ class TestInitWorkflow:
             )
             mock_conn_class.return_value = mock_conn
 
-            # Mock prompts - default URI, yes to connection test
+            # Mock prompts - default URI, default database, yes to connection test
             result = runner.invoke(
                 cli_app,
                 ["init"],
-                input="\ny\n",
+                input="\n\ny\n",  # default URI, default database, test connection
             )
 
             assert result.exit_code == 0
@@ -161,11 +164,11 @@ class TestInitWorkflow:
         monkeypatch.setenv("NEO4J_USER", "neo4j")
         monkeypatch.setenv("NEO4J_PASSWORD", "password")
 
-        # Mock prompts - default URI, no connection test
+        # Mock prompts - default URI, default database, no connection test
         result = runner.invoke(
             cli_app,
             ["init", "--global"],
-            input="\nn\n",
+            input="\n\nn\n",  # default URI, default database, no connection test
         )
 
         assert result.exit_code == 0
@@ -189,7 +192,7 @@ class TestInitWorkflow:
         result = runner.invoke(
             cli_app,
             ["init"],
-            input="\nn\nn\n",  # URI, connection test, overwrite
+            input="\n\nn\nn\n",  # URI, database, connection test, overwrite
         )
 
         assert result.exit_code == 0
@@ -199,7 +202,7 @@ class TestInitWorkflow:
         result = runner.invoke(
             cli_app,
             ["init"],
-            input="\nn\ny\n",  # URI, connection test, overwrite
+            input="\n\nn\ny\n",  # URI, database, connection test, overwrite
         )
 
         assert result.exit_code == 0
@@ -211,12 +214,16 @@ class TestInitWorkflow:
         monkeypatch.setenv("NEO4J_USER", "neo4j")
         monkeypatch.setenv("NEO4J_PASSWORD", "test_password")
 
+        # Mock database creation
+        mock_neo4j_connection.create_database_if_not_exists.return_value = None
+
         # Run init with all steps
         custom_uri = "bolt://production:7687"
+        custom_db = "mapperdb"
         result = runner.invoke(
             cli_app,
             ["init"],
-            input=f"{custom_uri}\ny\ny\n",  # Custom URI, test connection, init DB
+            input=f"{custom_uri}\n{custom_db}\ny\ny\n",  # Custom URI, custom DB, test connection, init DB
         )
 
         # Verify output
@@ -227,13 +234,14 @@ class TestInitWorkflow:
         assert "Step 2: Neo4j connection details" in result.stdout
         assert "Step 3: Test the connection now?" in result.stdout
         assert "Connection successful" in result.stdout
-        assert "Step 4: Initialize database schema" in result.stdout
+        assert "Step 4: Create database and initialize schema" in result.stdout
         assert "Database schema initialized" in result.stdout
         assert "Step 5: Creating configuration file" in result.stdout
         assert "Setup complete!" in result.stdout
 
         # Verify summary
         assert f"Neo4j URI: {custom_uri}" in result.stdout
+        assert f"Database: {custom_db}" in result.stdout
         assert "Connection tested: Yes" in result.stdout
         assert "Database initialized: Yes" in result.stdout
 
@@ -241,8 +249,10 @@ class TestInitWorkflow:
         assert clean_config["local"].exists()
         config_data = config_manager.load_config_file(clean_config["local"])
         assert config_data["neo4j"]["uri"] == custom_uri
+        assert config_data["neo4j"]["database"] == custom_db
 
         # Verify Neo4j operations were called
         mock_neo4j_connection.test_connection.assert_called_once()
+        mock_neo4j_connection.create_database_if_not_exists.assert_called_once()
         mock_neo4j_connection.initialize_database.assert_called_once()
         mock_neo4j_connection.close.assert_called_once()

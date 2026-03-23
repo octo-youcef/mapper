@@ -8,6 +8,7 @@ class Neo4jConfig:
     """Neo4j connection configuration."""
 
     uri: str = "bolt://localhost:7687"
+    database: str = "neo4j"
     timeout: int = 30
     max_connection_pool_size: int = 50
     encrypted: bool = False
