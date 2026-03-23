@@ -10,6 +10,7 @@ This directory contains user-focused workflow documentation for Mapper.
 4. **Exploring Results**: Using the web UI to explore code relationships _(coming soon)_
 5. **Querying the Graph**: Direct Neo4j queries for advanced analysis _(coming soon)_
 6. **Exporting Data**: Exporting analysis results _(coming soon)_
+7. **[Checking System Status](07-checking-status.md)**: Verify Mapper configuration and Neo4j connectivity
 
 ## Documentation Format
 
