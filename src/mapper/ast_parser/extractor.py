@@ -155,7 +155,11 @@ class ASTExtractor:
                 qualifier = node.func.value.id
             else:
                 # Complex expressions like obj.attr.method() - use full prefix
-                qualifier = self._get_attribute_string(node.func.value) if isinstance(node.func.value, ast.Attribute) else None
+                qualifier = (
+                    self._get_attribute_string(node.func.value)
+                    if isinstance(node.func.value, ast.Attribute)
+                    else None
+                )
 
             return models.CallInfo(
                 name=node.func.attr,

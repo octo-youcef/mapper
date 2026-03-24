@@ -150,7 +150,9 @@ class TestASTExtractor:
         func = result.functions[0]
         assert len(func.calls) == 2
         assert any(call.name == "callee" and call.call_type == "simple" for call in func.calls)
-        assert any(call.name == "other_function" and call.call_type == "simple" for call in func.calls)
+        assert any(
+            call.name == "other_function" and call.call_type == "simple" for call in func.calls
+        )
 
     def test_extract_call_info_structure(self):
         """Test that call information is extracted with proper structure."""
