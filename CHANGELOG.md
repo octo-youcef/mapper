@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.4.1] - 2026-03-24
 
+### Changed
+- **CLAUDE.md** updated with comprehensive development standards
+  - Added philosophy section (experiment, question, context, simplicity, user outcomes)
+  - User outcomes first: Frame work as "a user can do X"
+  - Interface first: Design interfaces before implementation
+  - Enhanced documentation structure with interface/ directory
+  - Public vs private naming conventions with __all__ exports
+  - Comprehensive type hints requirements
+  - Google-style docstrings for all public objects
+  - Error handling: Fail fast with custom exceptions
+  - Pre-commit/pre-push hooks specifications
+  - Enhanced branch strategy (feature/, fix/, patch/, docs/)
+  - Commit message guidelines
+  - After code review workflow
+  - Testing structure: unit/integration split by module
+  - Documentation validity requirements
+
 ## [0.4.0] - 2026-03-23
 
 ### Added
