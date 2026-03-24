@@ -18,6 +18,24 @@ class GraphLoader:
         self._node_ids: dict[str, str] = {}  # Track created nodes for relationships
         self._deferred_relationships: list[tuple] = []  # Relationships to create later
 
+    def clear_package(self) -> int:
+        """Clear all nodes for this package from the graph.
+
+        Returns:
+            Number of nodes deleted
+        """
+        with self.connection.driver.session(database=self.connection.database) as session:
+            result = session.run(
+                """
+                MATCH (n {package: $package})
+                DETACH DELETE n
+                RETURN count(n) as deleted
+                """,
+                package=self.package_name,
+            )
+            record = result.single()
+            return record["deleted"] if record else 0
+
     def load_extraction(self, extraction: ast_parser.models.ExtractionResult) -> None:
         """Load extraction result into graph.
 
@@ -68,9 +86,7 @@ class GraphLoader:
         # Handle imports
         for import_info in extraction.imports:
             # Track imports for later relationship creation
-            self._deferred_relationships.append(
-                ("imports", module_name, import_info.module)
-            )
+            self._deferred_relationships.append(("imports", module_name, import_info.module))
 
     def finalize(self) -> None:
         """Finalize loading by creating deferred relationships.
