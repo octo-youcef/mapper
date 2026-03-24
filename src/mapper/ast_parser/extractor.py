@@ -115,10 +115,9 @@ class ASTExtractor:
         calls = []
         for child in ast.walk(node):
             if isinstance(child, ast.Call):
-                if isinstance(child.func, ast.Name):
-                    calls.append(child.func.id)
-                elif isinstance(child.func, ast.Attribute):
-                    calls.append(self._get_attribute_string(child.func))
+                call_info = self._extract_call(child)
+                if call_info:
+                    calls.append(call_info)
 
         return models.FunctionInfo(
             name=node.name,
@@ -128,6 +127,43 @@ class ASTExtractor:
             decorators=decorators,
             calls=calls,
         )
+
+    def _extract_call(self, node: ast.Call) -> models.CallInfo | None:
+        """Extract call information from a Call node.
+
+        Args:
+            node: AST Call node
+
+        Returns:
+            CallInfo with structured call data, or None if call cannot be parsed
+        """
+        if isinstance(node.func, ast.Name):
+            # Simple call: foo()
+            return models.CallInfo(
+                name=node.func.id,
+                call_type="simple",
+                full_name=node.func.id,
+                qualifier=None,
+            )
+        elif isinstance(node.func, ast.Attribute):
+            # Attribute call: obj.method() or module.function()
+            full_name = self._get_attribute_string(node.func)
+
+            # Parse the qualifier (what comes before the dot)
+            qualifier: str | None
+            if isinstance(node.func.value, ast.Name):
+                qualifier = node.func.value.id
+            else:
+                # Complex expressions like obj.attr.method() - use full prefix
+                qualifier = self._get_attribute_string(node.func.value) if isinstance(node.func.value, ast.Attribute) else None
+
+            return models.CallInfo(
+                name=node.func.attr,
+                call_type="attribute" if qualifier else "method",
+                full_name=full_name,
+                qualifier=qualifier,
+            )
+        return None
 
     def _extract_decorator(self, node: ast.expr) -> dict[str, str | list]:
         """Extract decorator information.

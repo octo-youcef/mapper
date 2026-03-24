@@ -37,6 +37,16 @@ class ParameterInfo:
 
 
 @attrs.define
+class CallInfo:
+    """Information about a function/method call."""
+
+    name: str  # Function/method/class name being called
+    call_type: str  # "simple", "method", "attribute"
+    full_name: str  # Full call string as it appears in code
+    qualifier: str | None = None  # For "self.x", "obj.x", "module.x" - the qualifier part
+
+
+@attrs.define
 class FunctionInfo:
     """Information about a function."""
 
@@ -45,7 +55,7 @@ class FunctionInfo:
     parameters: list[dict[str, str | None]] = attrs.field(factory=list)
     return_type: str | None = None
     decorators: list[dict[str, str | list]] = attrs.field(factory=list)
-    calls: list[str] = attrs.field(factory=list)
+    calls: list[CallInfo] = attrs.field(factory=list)
 
 
 @attrs.define

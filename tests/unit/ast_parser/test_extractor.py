@@ -149,8 +149,49 @@ class TestASTExtractor:
 
         func = result.functions[0]
         assert len(func.calls) == 2
-        assert "callee" in func.calls
-        assert "other_function" in func.calls
+        assert any(call.name == "callee" and call.call_type == "simple" for call in func.calls)
+        assert any(call.name == "other_function" and call.call_type == "simple" for call in func.calls)
+
+    def test_extract_call_info_structure(self):
+        """Test that call information is extracted with proper structure."""
+        code = textwrap.dedent("""
+            class MyClass:
+                def method(self):
+                    self.other_method()
+                    standalone_func()
+                    obj.external_method()
+                    math.sqrt(42)
+        """)
+
+        extractor = ast_parser.ASTExtractor(code, "module.py")
+        result = extractor.extract()
+
+        method = result.classes[0].methods[0]
+        assert len(method.calls) == 4
+
+        # self.other_method() - attribute call with 'self' qualifier
+        self_call = next(c for c in method.calls if c.name == "other_method")
+        assert self_call.call_type == "attribute"
+        assert self_call.qualifier == "self"
+        assert self_call.full_name == "self.other_method"
+
+        # standalone_func() - simple call
+        simple_call = next(c for c in method.calls if c.name == "standalone_func")
+        assert simple_call.call_type == "simple"
+        assert simple_call.qualifier is None
+        assert simple_call.full_name == "standalone_func"
+
+        # obj.external_method() - attribute call with 'obj' qualifier
+        obj_call = next(c for c in method.calls if c.name == "external_method")
+        assert obj_call.call_type == "attribute"
+        assert obj_call.qualifier == "obj"
+        assert obj_call.full_name == "obj.external_method"
+
+        # math.sqrt() - attribute call with 'math' qualifier (module call)
+        module_call = next(c for c in method.calls if c.name == "sqrt")
+        assert module_call.call_type == "attribute"
+        assert module_call.qualifier == "math"
+        assert module_call.full_name == "math.sqrt"
 
     def test_extract_return_type_from_annotation(self):
         """Test extracting return type from type annotation."""

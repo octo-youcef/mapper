@@ -51,7 +51,9 @@ class GraphLoader:
 
             # Track function calls for later
             for call in func_info.calls:
-                self._deferred_relationships.append(("calls", func_info.name, call))
+                # Extract call name from CallInfo object (temporary until Patch 2)
+                call_name = call.name if hasattr(call, "name") else call
+                self._deferred_relationships.append(("calls", func_info.name, call_name))
 
         # Handle imports
         for import_info in extraction.imports:
