@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.4.5] - 2026-03-24
+## [0.4.6] - 2026-03-24
 
 ### Removed
 - **Dead code cleanup** for improved maintainability and coverage
@@ -17,15 +17,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Removed related tests and imports
 
 ### Changed
+- **Coverage threshold raised to 79%** (was 65%)
+  - Removing dead code improved coverage from 77% to 80%
+  - Set realistic threshold at 79% for legitimate hard-to-test paths
+  - Updated `just test-coverage` command
+
+## [0.4.5] - 2026-03-24
+
+### Changed
 - **Type safety with enums** for string literals
   - Replaced `CallInfo.call_type` string literals with `CallType` enum (SIMPLE, ATTRIBUTE)
   - Replaced `ConfigStatus.active_source` string literals with `ConfigSource` enum (GLOBAL, LOCAL, BOTH, DEFAULTS)
   - Improves type safety and IDE autocomplete support
   - Python 3.10 compatible (str, Enum pattern instead of StrEnum)
-- **Coverage threshold raised to 79%** (was 65%)
-  - Removing dead code improved coverage from 77% to 80%
-  - Set realistic threshold at 79% for legitimate hard-to-test paths
-  - Updated `just test-coverage` command
 
 ## [0.4.4] - 2026-03-24
 
