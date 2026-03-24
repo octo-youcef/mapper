@@ -56,7 +56,7 @@ jobs:
         run: uv sync
 
       - name: Run unit tests with coverage
-        run: just test-unit --cov=src/mapper --cov-report=term --cov-fail-under=65
+        run: just test-coverage
 
   integration:
     runs-on: ubuntu-latest
