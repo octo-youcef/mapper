@@ -28,6 +28,7 @@ src/mapper/ast_parser/
 **`models.py`**: Data models for extracted information
 - `ModuleInfo`: Module path, name, docstring
 - `ImportInfo`: Import module and names
+- `CallInfo`: Structured call information (name, type, qualifier, full name)
 - `FunctionInfo`: Function name, parameters, return type, decorators, calls
 - `ClassInfo`: Class name, bases, methods, docstring
 - `ExtractionResult`: Complete extraction result containing all above
@@ -104,7 +105,7 @@ except SyntaxError as e:
 - **Parameters**: name and type annotation
 - **Return types**: type annotation
 - **Decorators**: decorator name only
-- **Function calls**: called function names
+- **Function calls**: structured call information (name, type, qualifier, full string)
 
 ### Runtime Values (❌ Not Extracted)
 
@@ -133,6 +134,31 @@ class ExtractionResult:
     functions: list[FunctionInfo]
 ```
 
+### CallInfo
+
+Structured information about a function/method call:
+
+```python
+@attrs.define
+class CallInfo:
+    name: str              # Function/method/class name being called
+    call_type: str         # "simple" or "attribute"
+    full_name: str         # Full call string as it appears in code
+    qualifier: str | None  # For attribute calls: "self", "obj", "module", etc.
+```
+
+**Call Types**:
+- `"simple"`: Direct call without qualifier (e.g., `foo()`, `MyClass()`)
+- `"attribute"`: Qualified call with dot notation (e.g., `self.method()`, `obj.func()`, `module.func()`)
+
+**Examples**:
+- `validate(user)` → `CallInfo(name="validate", call_type="simple", full_name="validate", qualifier=None)`
+- `self.save()` → `CallInfo(name="save", call_type="attribute", full_name="self.save", qualifier="self")`
+- `math.sqrt(x)` → `CallInfo(name="sqrt", call_type="attribute", full_name="math.sqrt", qualifier="math")`
+- `User(id)` → `CallInfo(name="User", call_type="simple", full_name="User", qualifier=None)`
+
+**Use Case**: Enables proper call relationship resolution by distinguishing between method calls, function calls, and constructor calls, while preserving context about the calling object or module.
+
 ### FunctionInfo
 
 Information about a function or method:
@@ -145,7 +171,7 @@ class FunctionInfo:
     parameters: list[dict[str, str | None]]  # [{"name": "x", "type": "int"}]
     return_type: str | None
     decorators: list[dict[str, str | list]]  # [{"name": "property", "args": []}]
-    calls: list[str]  # Function names called within this function
+    calls: list[CallInfo]  # Structured call information
 ```
 
 **Example**:
@@ -168,7 +194,10 @@ FunctionInfo(
     ],
     return_type="User",
     decorators=[{"name": "app.route", "args": []}],
-    calls=["validate", "User"]
+    calls=[
+        CallInfo(name="validate", call_type="simple", full_name="validate", qualifier=None),
+        CallInfo(name="User", call_type="simple", full_name="User", qualifier=None),
+    ]
 )
 ```
 
@@ -219,19 +248,34 @@ All extract just the decorator name: "property", "app.route", "requires_auth", "
 
 ### Function Call Tracking
 
-Tracks function calls within function bodies:
+Tracks function calls within function bodies with structured information:
 
 ```python
-def process_user(user_id: int) -> User:
-    user = fetch_user(user_id)
-    validate(user)
-    save_to_db(user)
-    return user
+class UserService:
+    def process_user(self, user_id: int) -> User:
+        user = self.fetch_user(user_id)  # Method call
+        validate(user)                    # Simple function call
+        db.save(user)                     # Attribute call (module/object)
+        return User(user_id)              # Constructor call
 ```
 
-Extracted calls: `["fetch_user", "validate", "save_to_db"]`
+Extracted calls as `CallInfo` objects:
+```python
+[
+    CallInfo(name="fetch_user", call_type="attribute", qualifier="self", full_name="self.fetch_user"),
+    CallInfo(name="validate", call_type="simple", qualifier=None, full_name="validate"),
+    CallInfo(name="save", call_type="attribute", qualifier="db", full_name="db.save"),
+    CallInfo(name="User", call_type="simple", qualifier=None, full_name="User"),
+]
+```
 
-**Use case**: Build call graphs to understand function dependencies.
+**CallInfo Structure**:
+- `name`: Function/method/class name being called
+- `call_type`: `"simple"` (direct call) or `"attribute"` (qualified call)
+- `qualifier`: For attribute calls: `"self"`, object name, or module name
+- `full_name`: Complete call string as it appears in code
+
+**Use case**: Build comprehensive call graphs with proper context for relationship resolution.
 
 ---
 
