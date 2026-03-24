@@ -120,7 +120,7 @@ class Neo4jConnection:
             # Create node with properties
             props_str = ", ".join(f"{k}: ${k}" for k in properties.keys())
             query = f"CREATE (n:{label} {{{props_str}}}) RETURN id(n) as node_id"
-            result = session.run(query, **properties)
+            result = session.run(query, parameters=properties)
             record = result.single()
             return str(record["node_id"]) if record else ""
 
@@ -147,14 +147,16 @@ class Neo4jConnection:
                 WHERE id(a) = $from_id AND id(b) = $to_id
                 CREATE (a)-[r:{rel_type} {{{props_str}}}]->(b)
                 """
-                session.run(query, from_id=int(from_node_id), to_id=int(to_node_id), **properties)
+                params = {"from_id": int(from_node_id), "to_id": int(to_node_id)}
+                params.update(properties)
+                session.run(query, parameters=params)
             else:
                 query = f"""
                 MATCH (a), (b)
                 WHERE id(a) = $from_id AND id(b) = $to_id
                 CREATE (a)-[r:{rel_type}]->(b)
                 """
-                session.run(query, from_id=int(from_node_id), to_id=int(to_node_id))
+                session.run(query, parameters={"from_id": int(from_node_id), "to_id": int(to_node_id)})
 
     def delete_package(self, package_name: str) -> int:
         """Delete all nodes for a package.
