@@ -66,7 +66,9 @@ class TestInitWorkflow:
         result = runner.invoke(cli_app, ["init"])
 
         assert result.exit_code == 1
-        assert "NEO4J_USER and NEO4J_PASSWORD environment variables must be set" in result.stdout
+        assert "Missing credentials" in result.stdout
+        assert "NEO4J_USER" in result.stdout
+        assert "NEO4J_PASSWORD" in result.stdout
 
     def test_init_with_default_values_no_connection_test(self, clean_config, monkeypatch):
         """Test init with default values and skipping connection test."""
