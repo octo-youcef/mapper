@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-03-24
+
+### Changed
+- **Structured call tracking** in AST parser
+  - Replaced simple string calls (`list[str]`) with structured `CallInfo` model
+  - `CallInfo` captures call name, type (simple/attribute), qualifier, and full call string
+  - Enables proper call relationship resolution in downstream features
+  - Examples: `self.method()` → `CallInfo(name="method", type="attribute", qualifier="self")`
+  - Foundation for comprehensive call graph analysis
+
 ## [0.4.2] - 2026-03-24
 
 ### Added
