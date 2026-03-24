@@ -13,7 +13,7 @@ from mapper import type_inference
 from mapper.graph import Neo4jConnection
 from mapper.parser import ASTParser
 
-__version__ = "0.4.1"
+__version__ = "0.4.2"
 
 __all__ = [
     # Version

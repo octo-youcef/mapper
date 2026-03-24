@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-03-24
+
+### Added
+- **Interface documentation** structure in `docs/interface/`
+  - `docs/interface/README.md` with documentation guidelines
+  - `docs/interface/cli.md` with comprehensive CLI command reference
+  - `docs/interface/api.md` with planned Python API reference
+
+### Changed
+- **Public API exports** in `src/mapper/__init__.py`
+  - Explicit `__all__` exports for clear public API surface
+  - Export key modules: analyser, ast_parser, config_manager, graph, parser, status_checker, type_inference
+  - Export main classes: ASTParser, Neo4jConnection
+  - Follow "import module, use module.Thing" pattern
+
 ## [0.4.1] - 2026-03-24
 
 ### Changed
