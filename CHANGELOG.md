@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.8] - 2026-03-24
+
+### Added
+- **Coverage tests** for previously untested code paths
+  - Added FileScanner test for FileNotFoundError when directory doesn't exist
+  - Added status checker test for config load failure with credentials present
+  - Total test count increased to 79 tests
+
+### Changed
+- **Coverage threshold raised to 80%** (was 79%)
+  - Coverage now at 80.27% with new tests
+  - Updated `just test-coverage` threshold to 80%
+
 ## [0.4.7] - 2026-03-24
 
 ### Fixed
