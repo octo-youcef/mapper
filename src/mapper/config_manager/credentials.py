@@ -17,7 +17,7 @@ def get_neo4j_credentials() -> tuple[str, str]:
 
     if not user or not password:
         raise ValueError(
-            "NEO4J_USER and NEO4J_PASSWORD environment variables must be set.\n"
+            "Missing credentials: NEO4J_USER and NEO4J_PASSWORD environment variables must be set.\n"
             "Set them with:\n"
             "  export NEO4J_USER=neo4j\n"
             "  export NEO4J_PASSWORD=your_password"

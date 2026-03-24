@@ -54,7 +54,9 @@ class TestStatusCommand:
         result = runner.invoke(cli_app, ["status"])
 
         assert result.exit_code == 1  # Error - missing credentials
-        assert "Missing credentials" in result.stdout or "NEO4J_USER" in result.stdout
+        assert "Missing credentials" in result.stdout
+        assert "NEO4J_USER" in result.stdout
+        assert "NEO4J_PASSWORD" in result.stdout
 
     def test_status_connected(self, tmp_path, monkeypatch):
         """Test status when successfully connected to Neo4j."""
