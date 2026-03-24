@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.7] - 2026-03-24
+
+### Fixed
+- **Badge caching issue** preventing coverage badge from updating
+  - Added `cacheSeconds=300` parameter to shields.io badge URLs in README
+  - Reduces cache duration to 5 minutes for more frequent updates
+  - Ensures badges reflect latest CI results
+
 ## [0.4.6] - 2026-03-24
 
 ### Removed
