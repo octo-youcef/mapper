@@ -2,6 +2,20 @@
 
 This file contains project-specific instructions for Claude Code when working with this repository. General workflow preferences are in Claude's MEMORY.md and apply unless overridden here.
 
+## Philosophy
+
+These principles guide how we work together:
+
+**Experiment and iterate**: Try things, see what works, throw away what doesn't quickly. "If it doesn't agree with experiment, it's wrong." - Feynman
+
+**Question everything**: Always question me. Push back if something seems wrong. A few more questions leading to a better solution is preferred over rushing to the wrong implementation.
+
+**Context is king**: Provide enough context to understand and debug. Error messages, logs, documentation - always include relevant context.
+
+**Simple is better than complex**: Choose simple solutions over complex ones. Don't over-engineer.
+
+**User interface and user outcomes are paramount**: Everything else can be changed later, but getting the user experience right is critical.
+
 ## Project Overview
 
 - **Type**: CLI Tool + Web UI
@@ -18,6 +32,25 @@ This file contains project-specific instructions for Claude Code when working wi
 
 ## Development Workflow
 
+### User Outcomes First
+
+Work should be framed as **"a user can do X"** rather than "implement feature Y".
+
+**IMPORTANT**: If a request is not framed this way, ask me to reframe it as a user outcome.
+
+Always start with user-journey documentation for review - that will save significant time writing code. Outcome achieved is good, we can refactor in review.
+
+### Interface First
+
+When writing code, always design the interface first, then implement. How something is used should inform how it is built.
+
+**Design workflow:**
+1. Draft interface document describing the public API/interface (how it will be used)
+2. Include example usage code
+3. Create a **draft PR** with the interface documentation
+4. Wait for review and feedback
+5. Only then implement internals
+
 ### Feature Implementation Order (CRITICAL)
 
 When implementing new features, **ALWAYS** follow this order:
@@ -26,8 +59,14 @@ When implementing new features, **ALWAYS** follow this order:
    - Define user goals, workflow, and outcomes
    - Include prerequisites, steps, verification, troubleshooting
    - Update `docs/user-journeys/README.md` index
+   - Create **draft PR** for review before implementation
 
-2. **Tests** - Write tests before implementation
+2. **Interface documentation** - Write `docs/interface/feature-name.md` if adding public APIs
+   - Document the public interface (CLI commands, API endpoints, function signatures)
+   - Include usage examples
+   - Create **draft PR** for review before implementation
+
+3. **Tests** - Write tests before implementation
    - Test classes grouped by functionality
    - Cover happy path, edge cases, error handling
    - Tests in `tests/` mirroring `src/` structure
@@ -176,6 +215,161 @@ seen_modules.append(module_name)
 - Allow duplicates
 - Need to maintain insertion order for display
 
+### Public vs Private
+
+**Explicit is better than implicit** - always clear about visibility:
+
+- **Public**: `no_underscore` - part of public API, in `__all__`
+- **Private**: `_single_underscore` - internal use
+- **Very private**: `__double_underscore` - for class properties that need protection (getters/setters, read-only)
+
+**Rule**: If something is not in `__all__`, it must be `_underscore` named or in a `_private.py` module. No implicitly private code.
+
+**`__init__.py` Pattern:**
+
+```python
+# mapper/__init__.py
+from mapper import parser
+from mapper import graph
+from mapper.parser import Parser
+from mapper.graph import Neo4jConnection
+
+__all__ = ["parser", "graph", "Parser", "Neo4jConnection"]
+```
+
+### Type Hints
+
+**Type everything** - Use type hints on all functions, including private ones:
+
+```python
+def parse_data(content: str, encoding: str = "utf-8") -> dict[str, Any]:
+    """Parse data from string."""
+    ...
+
+def _validate(data: dict[str, Any]) -> None:
+    """Validate parsed data."""
+    ...
+```
+
+**Always specify return types**, even `-> None`:
+
+```python
+def process_file(path: pathlib.Path) -> None:
+    """Process file."""
+    ...
+```
+
+**Use `|` syntax for unions** (PEP 604):
+
+```python
+def find_user(user_id: str) -> User | None:
+    """Find user by ID, return None if not found."""
+    ...
+```
+
+### Docstrings
+
+**Use Google-style docstrings** for all public functions, classes, and methods:
+
+```python
+def parse_data(content: str, validate: bool = True) -> dict[str, Any]:
+    """Parse structured data from string content.
+
+    Attempts to parse JSON first, falls back to YAML if JSON fails.
+    If validation is enabled, checks for required fields.
+
+    Args:
+        content: Raw string data to parse
+        validate: Whether to validate parsed data against schema
+
+    Returns:
+        Parsed data as dictionary with string keys
+
+    Raises:
+        ParseError: If content cannot be parsed as JSON or YAML
+        ValidationError: If validation fails and validate=True
+    """
+    ...
+```
+
+**Required docstrings:**
+- Modules (at top of file)
+- Classes
+- Public functions and methods
+- Public constants (if not obvious)
+
+Private functions should have docstrings if the logic is complex.
+
+### Error Handling
+
+**Fail fast** - Prefer raising exceptions over returning error values. Let errors propagate rather than hiding them.
+
+**Custom exception types** - Define exceptions in `exceptions.py`:
+
+```python
+# mapper/exceptions.py
+class MapperError(Exception):
+    """Base exception for mapper."""
+    pass
+
+class ParseError(MapperError):
+    """Parsing failed."""
+    pass
+
+class ConnectionError(MapperError):
+    """Database connection failed."""
+    pass
+```
+
+**Include context when raising**:
+
+```python
+# ✅ GOOD - Context included
+raise ParseError(
+    f"Missing required header 'id' in file {path} at line {line_num}"
+)
+
+# ❌ BAD - No context
+raise ParseError("Missing header")
+```
+
+### String Formatting
+
+**Always use f-strings**:
+
+```python
+# ✅ CORRECT
+name = "Alice"
+greeting = f"Hello, {name}!"
+result = f"Processing {count} items in {duration:.2f}s"
+
+# ❌ INCORRECT
+greeting = "Hello, {}!".format(name)
+greeting = "Hello, %s!" % name
+```
+
+### Data Classes
+
+**Use attrs** for data classes (not stdlib dataclasses).
+
+**Immutable by default** - Prefer frozen (immutable) dataclasses:
+
+```python
+import attrs
+
+@attrs.define(frozen=True)
+class Config:
+    host: str
+    port: int
+    database: str
+
+# To "modify", create new instance
+config = Config(host="localhost", port=5432, database="mapper")
+updated = attrs.evolve(config, port=5433)
+```
+
+**Data only** - Use dataclasses only for data containers, not objects with behavior. If you need methods/logic, use regular classes.
+
 ### Code Organization
 
 **Application Logic:**
@@ -200,18 +394,31 @@ src/mapper/cli/
 **Tests:**
 - Mirror source structure
 - Group related tests in classes
-- Separate unit tests from integration tests
+- Separate unit tests from integration tests by both type AND module
 
 ```
 tests/
-├── cli/
-│   ├── test_setup.py
-│   └── test_analysis.py
-├── analyzer/
-│   └── test_analyzer.py
+├── conftest.py                      # Shared fixtures
+├── unit/
+│   ├── cli/
+│   │   ├── test_setup.py
+│   │   └── test_analysis.py
+│   ├── ast_parser/
+│   │   └── test_extractor.py
+│   └── status_checker/
+│       └── test_checker.py
 └── integration/
-    └── test_workflows.py
+    ├── cli/
+    │   └── test_workflows.py
+    └── analyzer/
+        └── test_end_to_end.py
 ```
+
+**Benefits:**
+- Groups tests by type (unit vs integration)
+- Then groups by module being tested
+- Makes it easy to find all tests for a specific module
+- Scales well as project grows
 
 ### AST Analysis Scope
 
@@ -223,6 +430,36 @@ tests/
 ---
 
 ## Code Quality Standards
+
+### Pre-Commit Hooks
+
+Required checks before local commit:
+
+1. **Format code** - Auto-format to correct style (`just format`)
+2. **Linting** - All linting checks pass (`just lint`)
+3. **Type checking** - mypy must pass (`uv run mypy .`)
+4. **Unit tests** - All unit tests pass
+5. **CHANGELOG** - CHANGELOG.md must be updated
+6. **Documentation validity** - All docs checked (links work, examples run, instructions accurate)
+7. **Secrets scanning** - No API keys, tokens, passwords, or credentials
+
+**Never Commit:**
+- `.env` files
+- Credential files
+- API keys or tokens
+- Sensitive configuration
+- Data files
+- Personal information
+
+### Pre-Push Hooks
+
+Required checks before pushing to remote:
+
+1. **All pre-commit checks** - Everything from pre-commit must pass (implied)
+2. **Build verification** - Project builds successfully
+3. **Unit tests + coverage** - 80% coverage required
+4. **Integration tests** - All integration tests pass
+5. **Version bump** - Version must be incremented appropriately
 
 ### Before Every Commit
 
@@ -273,10 +510,16 @@ def test_analyze_options():
 
 ### Branch Strategy
 
-- **NEVER push directly to main** - ALL changes go through PRs
-- **Feature branches**: `feature/description`
-- **Patch branches**: `patch/description`
-- Main branch is protected - direct pushes rejected
+Branches should be descriptive and categorical:
+
+- **`feature/description`** - New features or enhancements
+- **`fix/description`** - Bug fixes
+- **`patch/description`** - Small patches, typos, minor corrections
+- **`docs/description`** - Documentation-only changes
+
+Use descriptive names that explain what the branch does, not just ticket numbers.
+
+**NEVER push directly to main** - ALL changes go through PRs. Main branch is protected - direct pushes rejected.
 
 ### Commit History (CRITICAL)
 
@@ -313,16 +556,72 @@ def test_analyze_options():
 6. Format code
 ```
 
+### After Code Review
+
+After receiving review feedback:
+- Rebase to incorporate changes into logical commits
+- Don't add "address feedback" commits
+- Squash fixups appropriately
+- Provide concise summary of changes when feedback has been received
+- Push includes rebase after code review
+
+### Commit Messages
+
+Keep commit messages clear and informative:
+
+- First line: Brief summary (under 70 characters)
+- Blank line
+- Detailed explanation if needed (why this change, not what changed)
+- Reference issues/PRs if relevant
+
+```
+Add JWT authentication for API endpoints
+
+Implement token-based authentication to secure API access.
+Users can obtain tokens via /auth/login and include them
+in Authorization headers for subsequent requests.
+
+Fixes #123
+```
+
 ---
 
 ## Documentation Requirements
 
+### Documentation Structure
+
+```
+docs/
+├── user-journey/       # User journey documentation (CRITICAL)
+│   ├── feature-name.md
+│   └── README.md
+├── interface/          # Interface documentation (CRITICAL)
+│   ├── cli.md
+│   ├── api.md
+│   └── README.md
+├── technical/          # Technical architecture
+│   ├── module-name.md
+│   └── README.md
+└── architecture/       # System design
+    └── overview.md
+```
+
+User-journey and interface documentation are the most important - always start here before implementing.
+
 ### When to Document
 
-- **New user journeys**: Document in `docs/user-journeys/`
+- **New user journeys**: Document in `docs/user-journey/`
   - Format: Prerequisites → Steps → Outcomes → Troubleshooting
-  - Update index: `docs/user-journeys/README.md`
+  - Update index: `docs/user-journey/README.md`
   - Cross-reference related journeys
+  - Create **draft PR** for review before implementation
+
+- **New/modified interfaces**: Document in `docs/interface/`
+  - **All public APIs and interfaces** must be documented
+  - CLI commands, API endpoints, function signatures
+  - Include usage examples
+  - Create **draft PR** for review before implementation
+  - **Must be kept up to date** with code changes
 
 - **New/modified modules**: Document in `docs/technical/`
   - Purpose, key classes/functions, usage examples
@@ -334,6 +633,15 @@ def test_analyze_options():
   - Update "Last Updated" date
 
 - **All changes**: Update `CHANGELOG.md` with user-facing changes
+
+### Documentation Validity
+
+All documentation must be checked for validity before commit:
+- Links work
+- Code examples run
+- Instructions are accurate
+- Version numbers are current
+- Interface documentation matches actual code (CLI commands, API signatures, function interfaces)
 
 ---
 
@@ -443,5 +751,5 @@ just mapper [args]    # Run CLI tool
 
 ---
 
-**Last Updated**: 2026-03-23
+**Last Updated**: 2026-03-24
 **Current Version**: 0.4.0
