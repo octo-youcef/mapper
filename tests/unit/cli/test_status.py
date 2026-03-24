@@ -217,3 +217,31 @@ class TestStatusCommand:
             # Should show connection with merged config
             assert result.exit_code == 0
             assert "Connected" in result.stdout
+
+    def test_status_credentials_but_config_load_fails(self, tmp_path, monkeypatch):
+        """Test status when credentials exist but config loading fails."""
+        # Create a config file
+        global_config = tmp_path / "config.toml"
+        global_config.parent.mkdir(parents=True, exist_ok=True)
+        global_config.write_text('[neo4j]\nuri = "bolt://localhost:7687"\n')
+
+        monkeypatch.setattr("mapper.config_manager.get_global_config_path", lambda: global_config)
+        monkeypatch.setattr(
+            "mapper.config_manager.get_local_config_path",
+            lambda: tmp_path / ".mapper.toml",
+        )
+
+        # Set credentials
+        monkeypatch.setenv("NEO4J_USER", "neo4j")
+        monkeypatch.setenv("NEO4J_PASSWORD", "password")
+
+        # Mock load_config to raise an exception
+        with patch("mapper.status_checker.checker.config_manager.load_config") as mock_load:
+            mock_load.side_effect = Exception("Config parsing error")
+
+            result = runner.invoke(cli_app, ["status"])
+
+            # Should show error about config loading
+            assert result.exit_code == 1
+            assert "Disconnected" in result.stdout or "error" in result.stdout.lower()
+            assert "Unexpected error" in result.stdout or "Config parsing error" in result.stdout
