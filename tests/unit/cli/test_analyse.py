@@ -1,5 +1,7 @@
 """Tests for analyse commands."""
 
+from unittest.mock import MagicMock, Mock, patch
+
 from typer.testing import CliRunner
 
 from mapper.cli import app
@@ -10,8 +12,13 @@ runner = CliRunner()
 class TestStartCommand:
     """Tests for analyse start command."""
 
-    def test_basic_analysis(self, tmp_path):
+    @patch("mapper.cli.analyse.graph.Neo4jConnection.from_config")
+    def test_basic_analysis(self, mock_from_config, tmp_path):
         """Test start command with required path."""
+        # Mock Neo4j connection
+        mock_conn = Mock()
+        mock_from_config.return_value = mock_conn
+
         # Create a test file
         (tmp_path / "test.py").write_text("def test(): pass")
 
@@ -21,24 +28,51 @@ class TestStartCommand:
         assert "Analysis complete" in result.stdout
         assert "Modules" in result.stdout
 
-    def test_with_name_option(self, tmp_path):
+    @patch("mapper.cli.analyse.graph.Neo4jConnection.from_config")
+    def test_with_name_option(self, mock_from_config, tmp_path):
         """Test start command with --name option."""
+        # Mock Neo4j connection
+        mock_conn = Mock()
+        mock_from_config.return_value = mock_conn
+
         (tmp_path / "test.py").write_text("def test(): pass")
 
         result = runner.invoke(app, ["analyse", "start", str(tmp_path), "--name", "test-pkg"])
         assert result.exit_code == 0
         assert "test-pkg" in result.stdout
 
-    def test_with_force_flag(self, tmp_path):
+    @patch("mapper.cli.analyse.graph.Neo4jConnection.from_config")
+    def test_with_force_flag(self, mock_from_config, tmp_path):
         """Test start command with --force flag."""
+        # Mock Neo4j connection with proper context manager support
+        mock_result = Mock()
+        mock_result.single.return_value = {"deleted": 5}
+
+        mock_session = MagicMock()
+        mock_session.run.return_value = mock_result
+
+        # Create a MagicMock for the context manager
+        mock_ctx_manager = MagicMock()
+        mock_ctx_manager.__enter__.return_value = mock_session
+        mock_ctx_manager.__exit__.return_value = None
+
+        mock_conn = Mock()
+        mock_conn.driver.session.return_value = mock_ctx_manager
+        mock_conn.database = "neo4j"
+        mock_from_config.return_value = mock_conn
+
         (tmp_path / "test.py").write_text("def test(): pass")
 
         result = runner.invoke(app, ["analyse", "start", str(tmp_path), "--force"])
         assert result.exit_code == 0
-        # Force flag doesn't affect output yet, just check it's accepted
 
-    def test_quiet_flag(self, tmp_path):
+    @patch("mapper.cli.analyse.graph.Neo4jConnection.from_config")
+    def test_quiet_flag(self, mock_from_config, tmp_path):
         """Test start command with --quiet flag."""
+        # Mock Neo4j connection
+        mock_conn = Mock()
+        mock_from_config.return_value = mock_conn
+
         (tmp_path / "test.py").write_text("def test(): pass")
 
         result = runner.invoke(app, ["analyse", "start", str(tmp_path), "--quiet"])
@@ -46,30 +80,50 @@ class TestStartCommand:
         # Quiet mode should suppress most output
         assert "Analyzing:" not in result.stdout
 
-    def test_verbose_flag(self, tmp_path):
+    @patch("mapper.cli.analyse.graph.Neo4jConnection.from_config")
+    def test_verbose_flag(self, mock_from_config, tmp_path):
         """Test start command with --verbose flag."""
+        # Mock Neo4j connection
+        mock_conn = Mock()
+        mock_from_config.return_value = mock_conn
+
         (tmp_path / "test.py").write_text("def test(): pass")
 
         result = runner.invoke(app, ["analyse", "start", str(tmp_path), "--verbose"])
         assert result.exit_code == 0
 
-    def test_verbose_short_flag(self, tmp_path):
+    @patch("mapper.cli.analyse.graph.Neo4jConnection.from_config")
+    def test_verbose_short_flag(self, mock_from_config, tmp_path):
         """Test start command with -v short flag."""
+        # Mock Neo4j connection
+        mock_conn = Mock()
+        mock_from_config.return_value = mock_conn
+
         (tmp_path / "test.py").write_text("def test(): pass")
 
         result = runner.invoke(app, ["analyse", "start", str(tmp_path), "-v"])
         assert result.exit_code == 0
 
-    def test_quiet_short_flag(self, tmp_path):
+    @patch("mapper.cli.analyse.graph.Neo4jConnection.from_config")
+    def test_quiet_short_flag(self, mock_from_config, tmp_path):
         """Test start command with -q short flag."""
+        # Mock Neo4j connection
+        mock_conn = Mock()
+        mock_from_config.return_value = mock_conn
+
         (tmp_path / "test.py").write_text("def test(): pass")
 
         result = runner.invoke(app, ["analyse", "start", str(tmp_path), "-q"])
         assert result.exit_code == 0
         assert "Analyzing:" not in result.stdout
 
-    def test_multiple_excludes(self, tmp_path):
+    @patch("mapper.cli.analyse.graph.Neo4jConnection.from_config")
+    def test_multiple_excludes(self, mock_from_config, tmp_path):
         """Test start command with multiple --exclude options."""
+        # Mock Neo4j connection
+        mock_conn = Mock()
+        mock_from_config.return_value = mock_conn
+
         (tmp_path / "main.py").write_text("def main(): pass")
         (tmp_path / "test.py").write_text("def test(): pass")
 

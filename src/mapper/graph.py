@@ -106,17 +106,88 @@ class Neo4jConnection:
             for index in indexes:
                 session.run(index)
 
+    def create_node(self, label: str, properties: dict[str, Any]) -> str:
+        """Create a node in the graph.
+
+        Args:
+            label: Node label (e.g., "Module", "Class", "Function")
+            properties: Node properties
+
+        Returns:
+            Node ID (internal Neo4j ID as string)
+        """
+        with self.driver.session(database=self.database) as session:
+            # Create node with properties
+            props_str = ", ".join(f"{k}: ${k}" for k in properties.keys())
+            query = f"CREATE (n:{label} {{{props_str}}}) RETURN id(n) as node_id"
+            result = session.run(query, parameters=properties)
+            record = result.single()
+            return str(record["node_id"]) if record else ""
+
+    def create_relationship(
+        self,
+        from_node_id: str,
+        to_node_id: str,
+        rel_type: str,
+        properties: dict[str, Any] | None = None,
+    ) -> None:
+        """Create a relationship between two nodes.
+
+        Args:
+            from_node_id: Source node ID
+            to_node_id: Target node ID
+            rel_type: Relationship type (e.g., "IMPORTS", "CALLS")
+            properties: Optional relationship properties
+        """
+        with self.driver.session(database=self.database) as session:
+            if properties:
+                props_str = ", ".join(f"{k}: ${k}" for k in properties.keys())
+                query = f"""
+                MATCH (a), (b)
+                WHERE id(a) = $from_id AND id(b) = $to_id
+                CREATE (a)-[r:{rel_type} {{{props_str}}}]->(b)
+                """
+                params = {"from_id": int(from_node_id), "to_id": int(to_node_id)}
+                params.update(properties)
+                session.run(query, parameters=params)
+            else:
+                query = f"""
+                MATCH (a), (b)
+                WHERE id(a) = $from_id AND id(b) = $to_id
+                CREATE (a)-[r:{rel_type}]->(b)
+                """
+                session.run(
+                    query, parameters={"from_id": int(from_node_id), "to_id": int(to_node_id)}
+                )
+
+    def delete_package(self, package_name: str) -> int:
+        """Delete all nodes for a package.
+
+        Args:
+            package_name: Package name to delete
+
+        Returns:
+            Number of nodes deleted
+        """
+        with self.driver.session(database=self.database) as session:
+            query = """
+            MATCH (n {package: $package_name})
+            DETACH DELETE n
+            RETURN count(n) as count
+            """
+            result = session.run(query, package_name=package_name)
+            record = result.single()
+            return record["count"] if record else 0
+
     def store_node(self, label: str, properties: dict[str, Any]) -> None:
-        """Store a node in the graph."""
-        # Placeholder implementation
-        pass
+        """Store a node in the graph (deprecated, use create_node)."""
+        self.create_node(label, properties)
 
     def store_relationship(
         self, from_node: str, to_node: str, rel_type: str, properties: dict[str, Any] | None = None
     ) -> None:
-        """Store a relationship between two nodes."""
-        # Placeholder implementation
-        pass
+        """Store a relationship between two nodes (deprecated, use create_relationship)."""
+        self.create_relationship(from_node, to_node, rel_type, properties)
 
     @classmethod
     def from_config(cls) -> "Neo4jConnection":

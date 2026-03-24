@@ -4,11 +4,12 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
+from neo4j.exceptions import AuthError, ConfigurationError, ServiceUnavailable
 from rich.console import Console
 from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
-from mapper import analyser
+from mapper import analyser, graph, graph_loader
 
 console = Console()
 
@@ -75,8 +76,38 @@ def start(
     default_exclusions = ["*/__pycache__/*", "*.pyc", "*/.venv/*", "*/.git/*"]
     all_exclusions = default_exclusions + (exclude or [])
 
+    # Create Neo4j connection and loader
+    try:
+        connection = graph.Neo4jConnection.from_config()
+        loader = graph_loader.GraphLoader(connection, package_name=project_name)
+
+        # Clear existing package data if force flag set
+        if force and not quiet:
+            console.print(f"[yellow]Clearing existing data for package:[/yellow] {project_name}")
+            deleted = loader.clear_package()
+            if deleted > 0:
+                console.print(f"[dim]Deleted {deleted} nodes[/dim]\n")
+
+    except ValueError as e:
+        # Missing credentials (from config_manager.get_neo4j_credentials)
+        console.print(f"[red]Missing Neo4j credentials:[/red] {e}")
+        console.print("[dim]Run 'mapper init' to configure Neo4j connection[/dim]")
+        raise typer.Exit(code=1) from e
+
+    except (ServiceUnavailable, ConfigurationError) as e:
+        # Neo4j service not available or misconfigured
+        console.print(f"[red]Neo4j service unavailable:[/red] {e}")
+        console.print("[dim]Ensure Neo4j is running with 'just up'[/dim]")
+        raise typer.Exit(code=1) from e
+
+    except AuthError as e:
+        # Authentication failed
+        console.print(f"[red]Neo4j authentication failed:[/red] {e}")
+        console.print("[dim]Check your NEO4J_USER and NEO4J_PASSWORD environment variables[/dim]")
+        raise typer.Exit(code=1) from e
+
     # Create analyser
-    code_analyser = analyser.Analyser(path, exclude_patterns=all_exclusions)
+    code_analyser = analyser.Analyser(path, exclude_patterns=all_exclusions, loader=loader)
 
     # Progress tracking
     if not quiet:
@@ -114,8 +145,15 @@ def start(
         table.add_row("Classes", str(result.classes_count))
         table.add_row("Functions", str(result.functions_count))
         table.add_row("Relationships", str(result.relationships_count))
+        if result.nodes_created > 0:
+            table.add_row("Nodes Created", str(result.nodes_created))
 
         console.print(table)
+
+        # Neo4j storage confirmation
+        if result.nodes_created > 0:
+            console.print("\n[bold green]Analysis stored in Neo4j[/bold green]")
+            console.print("[dim]View in Neo4j Browser: http://localhost:7474[/dim]")
 
         # Warnings
         if result.warnings:

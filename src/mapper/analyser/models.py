@@ -12,5 +12,6 @@ class AnalyseResult:
     classes_count: int = 0
     functions_count: int = 0
     relationships_count: int = 0
+    nodes_created: int = 0
     errors: list[str] = attrs.field(factory=list)
     warnings: list[str] = attrs.field(factory=list)
