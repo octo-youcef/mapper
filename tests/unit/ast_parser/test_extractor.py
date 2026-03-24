@@ -220,3 +220,68 @@ class TestASTExtractor:
 
         with pytest.raises(SyntaxError):
             extractor.extract()
+
+    def test_visibility_detection(self):
+        """Test public/private visibility detection based on naming conventions."""
+        code = textwrap.dedent('''
+            def public_function():
+                """A public function."""
+                pass
+
+            def _private_function():
+                """A private function."""
+                pass
+
+            def __dunder_method__():
+                """A dunder method (public)."""
+                pass
+
+            class PublicClass:
+                """A public class."""
+
+                def public_method(self):
+                    """A public method."""
+                    pass
+
+                def _private_method(self):
+                    """A private method."""
+                    pass
+
+                def __init__(self):
+                    """Dunder method (public)."""
+                    pass
+
+            class _PrivateClass:
+                """A private class."""
+                pass
+        ''')
+
+        extractor = ast_parser.ASTExtractor(code, "module.py")
+        result = extractor.extract()
+
+        # Check functions
+        public_func = next(f for f in result.functions if f.name == "public_function")
+        assert public_func.is_public is True
+
+        private_func = next(f for f in result.functions if f.name == "_private_function")
+        assert private_func.is_public is False
+
+        dunder_func = next(f for f in result.functions if f.name == "__dunder_method__")
+        assert dunder_func.is_public is True
+
+        # Check classes
+        public_class = next(c for c in result.classes if c.name == "PublicClass")
+        assert public_class.is_public is True
+
+        private_class = next(c for c in result.classes if c.name == "_PrivateClass")
+        assert private_class.is_public is False
+
+        # Check methods
+        public_method = next(m for m in public_class.methods if m.name == "public_method")
+        assert public_method.is_public is True
+
+        private_method = next(m for m in public_class.methods if m.name == "_private_method")
+        assert private_method.is_public is False
+
+        init_method = next(m for m in public_class.methods if m.name == "__init__")
+        assert init_method.is_public is True

@@ -20,6 +20,25 @@ class ASTExtractor:
         self.file_path = file_path
         self.tree: ast.Module | None = None
 
+    @staticmethod
+    def _is_public(name: str) -> bool:
+        """Determine if a name is public based on Python naming conventions.
+
+        Args:
+            name: Name to check
+
+        Returns:
+            True if public, False if private
+        """
+        # Dunder methods (__init__, __str__, etc.) are public
+        if name.startswith("__") and name.endswith("__"):
+            return True
+        # Single underscore prefix indicates private
+        if name.startswith("_"):
+            return False
+        # Everything else is public
+        return True
+
     def extract(self) -> models.ExtractionResult:
         """Extract information from code.
 
@@ -78,6 +97,7 @@ class ASTExtractor:
 
         return models.ClassInfo(
             name=node.name,
+            is_public=self._is_public(node.name),
             docstring=ast.get_docstring(node),
             bases=bases,
             methods=methods,
@@ -121,6 +141,7 @@ class ASTExtractor:
 
         return models.FunctionInfo(
             name=node.name,
+            is_public=self._is_public(node.name),
             docstring=ast.get_docstring(node),
             parameters=parameters,
             return_type=return_type,

@@ -60,6 +60,7 @@ class FunctionInfo:
     """Information about a function."""
 
     name: str
+    is_public: bool
     docstring: str | None = None
     parameters: list[dict[str, str | None]] = attrs.field(factory=list)
     return_type: str | None = None
@@ -72,6 +73,7 @@ class ClassInfo:
     """Information about a class."""
 
     name: str
+    is_public: bool
     docstring: str | None = None
     bases: list[str] = attrs.field(factory=list)
     methods: list[FunctionInfo] = attrs.field(factory=list)
