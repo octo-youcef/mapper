@@ -56,13 +56,13 @@ class StatusChecker:
         local_exists = local_path.exists()
 
         if global_exists and local_exists:
-            active_source = "Both (Local overrides Global)"
+            active_source = models.ConfigSource.BOTH
         elif local_exists:
-            active_source = "Local"
+            active_source = models.ConfigSource.LOCAL
         elif global_exists:
-            active_source = "Global"
+            active_source = models.ConfigSource.GLOBAL
         else:
-            active_source = "Defaults"
+            active_source = models.ConfigSource.DEFAULTS
 
         return models.ConfigStatus(
             global_config_path=str(global_path),

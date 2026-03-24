@@ -1,6 +1,17 @@
 """Data models for status checking."""
 
+from enum import Enum
+
 import attrs
+
+
+class ConfigSource(str, Enum):  # noqa: UP042 - str,Enum for Python 3.10 compatibility
+    """Source of configuration settings."""
+
+    GLOBAL = "Global"
+    LOCAL = "Local"
+    BOTH = "Both (Local overrides Global)"
+    DEFAULTS = "Defaults"
 
 
 @attrs.define
@@ -11,7 +22,7 @@ class ConfigStatus:
     global_config_exists: bool
     local_config_path: str
     local_config_exists: bool
-    active_source: str  # "Global", "Local", "Both", "Defaults"
+    active_source: ConfigSource  # Source of active configuration
 
 
 @attrs.define

@@ -1,6 +1,15 @@
 """Data models for AST extraction."""
 
+from enum import Enum
+
 import attrs
+
+
+class CallType(str, Enum):  # noqa: UP042 - str,Enum for Python 3.10 compatibility
+    """Type of function/method call."""
+
+    SIMPLE = "simple"
+    ATTRIBUTE = "attribute"
 
 
 @attrs.define
@@ -41,7 +50,7 @@ class CallInfo:
     """Information about a function/method call."""
 
     name: str  # Function/method/class name being called
-    call_type: str  # "simple", "method", "attribute"
+    call_type: CallType  # Type of call (simple or attribute)
     full_name: str  # Full call string as it appears in code
     qualifier: str | None = None  # For "self.x", "obj.x", "module.x" - the qualifier part
 

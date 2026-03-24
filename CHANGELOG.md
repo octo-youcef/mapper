@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.5] - 2026-03-24
+
+### Changed
+- **Type safety with enums** for string literals
+  - Replaced `CallInfo.call_type` string literals with `CallType` enum (SIMPLE, ATTRIBUTE)
+  - Replaced `ConfigStatus.active_source` string literals with `ConfigSource` enum (GLOBAL, LOCAL, BOTH, DEFAULTS)
+  - Improves type safety and IDE autocomplete support
+  - Python 3.10 compatible (str, Enum pattern instead of StrEnum)
+
 ## [0.4.4] - 2026-03-24
 
 ### Changed

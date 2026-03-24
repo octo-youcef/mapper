@@ -142,20 +142,20 @@ Structured information about a function/method call:
 @attrs.define
 class CallInfo:
     name: str              # Function/method/class name being called
-    call_type: str         # "simple" or "attribute"
+    call_type: CallType    # Enum: SIMPLE or ATTRIBUTE
     full_name: str         # Full call string as it appears in code
     qualifier: str | None  # For attribute calls: "self", "obj", "module", etc.
 ```
 
-**Call Types**:
-- `"simple"`: Direct call without qualifier (e.g., `foo()`, `MyClass()`)
-- `"attribute"`: Qualified call with dot notation (e.g., `self.method()`, `obj.func()`, `module.func()`)
+**CallType enum**:
+- `CallType.SIMPLE`: Direct call without qualifier (e.g., `foo()`, `MyClass()`)
+- `CallType.ATTRIBUTE`: Qualified call with dot notation (e.g., `self.method()`, `obj.func()`, `module.func()`)
 
 **Examples**:
-- `validate(user)` → `CallInfo(name="validate", call_type="simple", full_name="validate", qualifier=None)`
-- `self.save()` → `CallInfo(name="save", call_type="attribute", full_name="self.save", qualifier="self")`
-- `math.sqrt(x)` → `CallInfo(name="sqrt", call_type="attribute", full_name="math.sqrt", qualifier="math")`
-- `User(id)` → `CallInfo(name="User", call_type="simple", full_name="User", qualifier=None)`
+- `validate(user)` → `CallInfo(name="validate", call_type=CallType.SIMPLE, full_name="validate", qualifier=None)`
+- `self.save()` → `CallInfo(name="save", call_type=CallType.ATTRIBUTE, full_name="self.save", qualifier="self")`
+- `math.sqrt(x)` → `CallInfo(name="sqrt", call_type=CallType.ATTRIBUTE, full_name="math.sqrt", qualifier="math")`
+- `User(id)` → `CallInfo(name="User", call_type=CallType.SIMPLE, full_name="User", qualifier=None)`
 
 **Use Case**: Enables proper call relationship resolution by distinguishing between method calls, function calls, and constructor calls, while preserving context about the calling object or module.
 
@@ -195,8 +195,8 @@ FunctionInfo(
     return_type="User",
     decorators=[{"name": "app.route", "args": []}],
     calls=[
-        CallInfo(name="validate", call_type="simple", full_name="validate", qualifier=None),
-        CallInfo(name="User", call_type="simple", full_name="User", qualifier=None),
+        CallInfo(name="validate", call_type=CallType.SIMPLE, full_name="validate", qualifier=None),
+        CallInfo(name="User", call_type=CallType.SIMPLE, full_name="User", qualifier=None),
     ]
 )
 ```
@@ -262,16 +262,16 @@ class UserService:
 Extracted calls as `CallInfo` objects:
 ```python
 [
-    CallInfo(name="fetch_user", call_type="attribute", qualifier="self", full_name="self.fetch_user"),
-    CallInfo(name="validate", call_type="simple", qualifier=None, full_name="validate"),
-    CallInfo(name="save", call_type="attribute", qualifier="db", full_name="db.save"),
-    CallInfo(name="User", call_type="simple", qualifier=None, full_name="User"),
+    CallInfo(name="fetch_user", call_type=CallType.ATTRIBUTE, qualifier="self", full_name="self.fetch_user"),
+    CallInfo(name="validate", call_type=CallType.SIMPLE, qualifier=None, full_name="validate"),
+    CallInfo(name="save", call_type=CallType.ATTRIBUTE, qualifier="db", full_name="db.save"),
+    CallInfo(name="User", call_type=CallType.SIMPLE, qualifier=None, full_name="User"),
 ]
 ```
 
 **CallInfo Structure**:
 - `name`: Function/method/class name being called
-- `call_type`: `"simple"` (direct call) or `"attribute"` (qualified call)
+- `call_type`: `CallType.SIMPLE` (direct call) or `CallType.ATTRIBUTE` (qualified call)
 - `qualifier`: For attribute calls: `"self"`, object name, or module name
 - `full_name`: Complete call string as it appears in code
 

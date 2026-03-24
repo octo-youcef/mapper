@@ -141,7 +141,7 @@ class ASTExtractor:
             # Simple call: foo()
             return models.CallInfo(
                 name=node.func.id,
-                call_type="simple",
+                call_type=models.CallType.SIMPLE,
                 full_name=node.func.id,
                 qualifier=None,
             )
@@ -163,7 +163,7 @@ class ASTExtractor:
 
             return models.CallInfo(
                 name=node.func.attr,
-                call_type="attribute" if qualifier else "method",
+                call_type=models.CallType.ATTRIBUTE,
                 full_name=full_name,
                 qualifier=qualifier,
             )

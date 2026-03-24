@@ -27,8 +27,14 @@ class ConfigStatus:
     global_config_exists: bool
     local_config_path: str
     local_config_exists: bool
-    active_source: str  # "Global", "Local", "Both", "Defaults"
+    active_source: ConfigSource  # Enum: GLOBAL, LOCAL, BOTH, DEFAULTS
 ```
+
+**ConfigSource enum:**
+- `ConfigSource.GLOBAL` - Using global config only
+- `ConfigSource.LOCAL` - Using local config only
+- `ConfigSource.BOTH` - Both configs exist (local overrides global)
+- `ConfigSource.DEFAULTS` - No config files, using defaults
 
 ### ConnectionStatus
 
@@ -105,13 +111,13 @@ def _check_config(self) -> ConfigStatus:
 
     # Determine active source
     if global_exists and local_exists:
-        active_source = "Both (Local overrides Global)"
+        active_source = models.ConfigSource.BOTH
     elif local_exists:
-        active_source = "Local"
+        active_source = models.ConfigSource.LOCAL
     elif global_exists:
-        active_source = "Global"
+        active_source = models.ConfigSource.GLOBAL
     else:
-        active_source = "Defaults"
+        active_source = models.ConfigSource.DEFAULTS
 ```
 
 Shows which configuration files exist and which takes precedence.
