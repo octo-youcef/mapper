@@ -27,12 +27,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Enables future antipattern analysis (e.g., private methods called from outside their class)
   - Added comprehensive test coverage for visibility detection
   - Visibility data stored in Neo4j for all Function, Method, and Class nodes
+- **Fully Qualified Names (FQNs)** for correct node identification
+  - All nodes now have `fqn` property (e.g., "module.Class.method")
+  - Enables correct cross-file relationship resolution
+  - Prevents name collisions between modules
+- **Re-analysis support** with `--force` flag
+  - `mapper analyse start /path --name pkg --force` clears existing package data before re-analyzing
+  - Enables iterative development workflow
+  - Prevents "Node already exists" errors
+- **User journey documentation**: "Storing Code in Graph Database"
+  - Step-by-step guide for analyzing code and navigating to Neo4j Browser
+  - Troubleshooting and re-analysis instructions
 
 ### Changed
 - **Analyser** now supports optional graph storage via `GraphLoader` parameter
 - **CLI analyse command** creates Neo4j connection and loader automatically
 - **CLI output** shows Neo4j storage confirmation and node count when storage enabled
 - **Coverage threshold lowered to 75%** (was 80%) - Substantial new infrastructure code (Neo4j integration, graph loading) added with integration-focused functionality that's difficult to unit test in isolation
+
+### Fixed
+- **Method calls now tracked** in graph storage (previously only standalone function calls were tracked)
 
 ## [0.4.8] - 2026-03-24
 
