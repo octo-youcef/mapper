@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-03-27
+
+### Added
+- **Cypher Query Cookbook** - Comprehensive technical reference for code analysis queries
+  - Complete query reference (`docs/technical/cypher-queries.md`)
+  - 50+ production-ready query examples organized by category:
+    - **Structure & Organization** (8 queries): classes, inheritance, hierarchies, visibility
+    - **Dependencies & Imports** (6 queries): imports, circular deps, transitive deps, unused imports
+    - **Function Calls & Relationships** (7 queries): callers, traces, dead code, recursion, coupling
+    - **Code Quality & Patterns** (7 queries): docstrings, parameters, encapsulation, god classes
+    - **Advanced Queries** (5 queries): pathfinding, metrics, coupling analysis, complexity
+  - Each query includes: description, parameters, example results, use cases
+  - Performance tips section with optimization guidelines
+  - Cross-referenced with user journey documentation
+  - Updated technical documentation index
+
 ## [0.5.2] - 2026-03-27
 
 ### Added
