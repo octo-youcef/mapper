@@ -751,5 +751,5 @@ just mapper [args]    # Run CLI tool
 
 ---
 
-**Last Updated**: 2026-03-26
-**Current Version**: 0.5.0
+**Last Updated**: 2026-03-27
+**Current Version**: 0.5.1

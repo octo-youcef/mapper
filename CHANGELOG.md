@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-03-27
+
+### Fixed
+- **Neo4j deprecation warnings** - Replaced deprecated `id()` function with `elementId()` in all Neo4j queries
+  - Updated `create_node()` to return element IDs instead of internal IDs
+  - Updated `create_relationship()` to use element IDs for node matching
+  - Removes deprecation warnings and ensures compatibility with future Neo4j versions
+  - All tests passing with new implementation
+
 ## [0.5.0] - 2026-03-26
 
 ### Added

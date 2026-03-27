@@ -114,12 +114,12 @@ class Neo4jConnection:
             properties: Node properties
 
         Returns:
-            Node ID (internal Neo4j ID as string)
+            Node element ID (Neo4j element ID as string)
         """
         with self.driver.session(database=self.database) as session:
             # Create node with properties
             props_str = ", ".join(f"{k}: ${k}" for k in properties.keys())
-            query = f"CREATE (n:{label} {{{props_str}}}) RETURN id(n) as node_id"
+            query = f"CREATE (n:{label} {{{props_str}}}) RETURN elementId(n) as node_id"
             result = session.run(query, parameters=properties)
             record = result.single()
             return str(record["node_id"]) if record else ""
@@ -144,21 +144,19 @@ class Neo4jConnection:
                 props_str = ", ".join(f"{k}: ${k}" for k in properties.keys())
                 query = f"""
                 MATCH (a), (b)
-                WHERE id(a) = $from_id AND id(b) = $to_id
+                WHERE elementId(a) = $from_id AND elementId(b) = $to_id
                 CREATE (a)-[r:{rel_type} {{{props_str}}}]->(b)
                 """
-                params = {"from_id": int(from_node_id), "to_id": int(to_node_id)}
+                params = {"from_id": from_node_id, "to_id": to_node_id}
                 params.update(properties)
                 session.run(query, parameters=params)
             else:
                 query = f"""
                 MATCH (a), (b)
-                WHERE id(a) = $from_id AND id(b) = $to_id
+                WHERE elementId(a) = $from_id AND elementId(b) = $to_id
                 CREATE (a)-[r:{rel_type}]->(b)
                 """
-                session.run(
-                    query, parameters={"from_id": int(from_node_id), "to_id": int(to_node_id)}
-                )
+                session.run(query, parameters={"from_id": from_node_id, "to_id": to_node_id})
 
     def delete_package(self, package_name: str) -> int:
         """Delete all nodes for a package.
