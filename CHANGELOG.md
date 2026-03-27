@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-03-27
+
+### Added
+- **User journey documentation**: Analyzing and Querying Code in Neo4j
+  - Comprehensive guide for querying stored code (`docs/user-journeys/05-analyzing-querying-code.md`)
+  - Common analysis workflows: structure, hierarchies, calls, dependencies, quality
+  - 40+ query examples covering:
+    - Understanding code structure (modules, classes, public APIs)
+    - Exploring class hierarchies (inheritance trees, base classes)
+    - Analyzing function calls (callers, traces, unused functions, coupling)
+    - Dependency analysis (imports, circular dependencies, transitive deps)
+    - Code quality checks (encapsulation violations, god objects)
+    - Architecture patterns (layering violations, module dependencies)
+  - Cypher query basics and reference
+  - Node and relationship type reference
+  - Troubleshooting guide for queries
+  - Updated user journey index with new document
+
 ## [0.5.1] - 2026-03-27
 
 ### Fixed
