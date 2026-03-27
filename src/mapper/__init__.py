@@ -15,7 +15,7 @@ from mapper import (
 from mapper.graph import Neo4jConnection
 from mapper.graph_loader import GraphLoader
 
-__version__ = "0.5.1"
+__version__ = "0.5.2"
 
 __all__ = [
     # Version
