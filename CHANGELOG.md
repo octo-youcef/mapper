@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **User journey documentation**: Enforcing Code Quality Rules
+  - Comprehensive guide for defining and enforcing code quality rules (`docs/user-journeys/06-enforcing-code-quality.md`)
+  - 10 common code quality rules with complete Cypher queries:
+    - Type annotation coverage
+    - Function complexity (max parameters)
+    - Decorator usage enforcement (e.g., @rate_limit on routes)
+    - Architectural layering (data/UI separation)
+    - Test coverage detection
+    - Dead code detection
+    - God class detection (max methods)
+    - Circular dependency detection
+    - Encapsulation violations
+    - Missing docstrings
+  - Template for creating custom rules
+  - Integration examples: pre-commit hooks, CI/CD pipelines, dashboards
+  - Notes on current limitations and future v0.6.0 capabilities
+  - Cross-referenced with query cookbook and schema documentation
+
 ## [0.5.4] - 2026-03-27
 
 ### Added
