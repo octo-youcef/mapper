@@ -23,10 +23,17 @@ class ModuleInfo:
 
 @attrs.define
 class ImportInfo:
-    """Information about an import statement."""
+    """Information about an import statement.
+
+    Examples:
+        import pandas as pd -> ImportInfo(module="pandas", names=["pandas"], alias="pd")
+        from typing import Optional as Opt -> ImportInfo(module="typing", names=["Optional"], aliases={"Optional": "Opt"})
+    """
 
     module: str
     names: list[str]
+    alias: str | None = None  # For 'import X as Y'
+    aliases: dict[str, str] = attrs.field(factory=dict)  # For 'from X import Y as Z'
 
 
 @attrs.define
@@ -87,3 +94,4 @@ class ExtractionResult:
     imports: list[ImportInfo] = attrs.field(factory=list)
     classes: list[ClassInfo] = attrs.field(factory=list)
     functions: list[FunctionInfo] = attrs.field(factory=list)
+    unresolved_names: list = attrs.field(factory=list)  # List of UnresolvedName instances

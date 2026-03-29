@@ -3,6 +3,7 @@
 import ast
 from pathlib import Path
 
+from mapper import name_resolver
 from mapper.ast_parser import models
 
 
@@ -60,12 +61,27 @@ class ASTExtractor:
         # Extract top-level elements
         for node in ast.walk(self.tree):
             if isinstance(node, ast.Import):
+                # import pandas as pd -> ImportInfo(module="pandas", names=["pandas"], alias="pd")
+                # import pandas -> ImportInfo(module="pandas", names=["pandas"], alias=None)
                 for alias in node.names:
-                    result.imports.append(models.ImportInfo(module=alias.name, names=[alias.name]))
+                    result.imports.append(
+                        models.ImportInfo(
+                            module=alias.name,
+                            names=[alias.name],
+                            alias=alias.asname if alias.asname else None,
+                        )
+                    )
             elif isinstance(node, ast.ImportFrom):
+                # from typing import Optional as Opt
+                # -> ImportInfo(module="typing", names=["Optional"], aliases={"Optional": "Opt"})
                 if node.module:
                     names = [alias.name for alias in node.names]
-                    result.imports.append(models.ImportInfo(module=node.module, names=names))
+                    aliases = {alias.name: alias.asname for alias in node.names if alias.asname}
+                    result.imports.append(
+                        models.ImportInfo(
+                            module=node.module, names=names, aliases=aliases if aliases else {}
+                        )
+                    )
 
         # Extract classes and functions from top level
         for node in self.tree.body:
@@ -73,6 +89,11 @@ class ASTExtractor:
                 result.classes.append(self._extract_class(node))
             elif isinstance(node, ast.FunctionDef):
                 result.functions.append(self._extract_function(node))
+
+        # Post-extraction: resolve names to FQNs
+        resolver = name_resolver.NameResolver(result.imports, module_name)
+        result, unresolved = resolver.resolve_extraction_result(result)
+        result.unresolved_names = unresolved
 
         return result
 

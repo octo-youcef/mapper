@@ -7,6 +7,7 @@ from mapper import (
     config_manager,
     graph,
     graph_loader,
+    name_resolver,
     status_checker,
     type_inference,
 )
@@ -14,6 +15,7 @@ from mapper import (
 # Public classes from modules
 from mapper.graph import Neo4jConnection
 from mapper.graph_loader import GraphLoader
+from mapper.name_resolver import NameResolver, UnresolvedName
 
 __version__ = "0.5.4"
 
@@ -26,9 +28,12 @@ __all__ = [
     "config_manager",
     "graph",
     "graph_loader",
+    "name_resolver",
     "status_checker",
     "type_inference",
     # Classes
     "GraphLoader",
+    "NameResolver",
     "Neo4jConnection",
+    "UnresolvedName",
 ]
