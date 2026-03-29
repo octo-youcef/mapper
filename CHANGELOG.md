@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-03-29
+
+### Added
+- **Name resolution system** - Foundation for tracking imports and resolving names to FQNs
+  - Import alias tracking for all four Python import patterns:
+    - `import X` → X maps to X
+    - `import X as Y` → Y maps to X
+    - `from X import Y` → Y maps to X.Y
+    - `from X import Y as Z` → Z maps to X.Y
+  - NameResolver class with post-extraction resolution pass
+  - UnresolvedName class for external/unknown references
+  - Automatic resolution of decorator names, base class names in extraction pipeline
+  - Extended ImportInfo model to capture import aliases
+  - Added unresolved_names field to ExtractionResult for tracking
+  - Comprehensive unit tests (16 new tests, 98% coverage for name_resolver module)
+  - Foundation for upcoming features:
+    - v0.6.1: DECORATED_WITH relationships to external decorators
+    - v0.6.2: Improved CALLS relationships with FQN resolution
+    - v0.6.3: Improved INHERITS relationships with FQN resolution
+    - v0.6.4: Structured parameter storage
+
+- **User journey documentation**: Enforcing Code Quality Rules
+  - Comprehensive guide for defining and enforcing code quality rules (`docs/user-journeys/06-enforcing-code-quality.md`)
+  - 10 common code quality rules with complete Cypher queries:
+    - Type annotation coverage
+    - Function complexity (max parameters)
+    - Decorator usage enforcement (e.g., @rate_limit on routes)
+    - Architectural layering (data/UI separation)
+    - Test coverage detection
+    - Dead code detection
+    - God class detection (max methods)
+    - Circular dependency detection
+    - Encapsulation violations
+    - Missing docstrings
+  - Template for creating custom rules
+  - Integration examples: pre-commit hooks, CI/CD pipelines, dashboards
+  - Notes on current limitations and future capabilities
+  - Cross-referenced with query cookbook and schema documentation
+
+### Changed
+- AST extractor now includes post-extraction name resolution pass
+- ImportInfo model extended with `alias` and `aliases` fields
+- ExtractionResult model extended with `unresolved_names` field
+- Test suite expanded from 104 to 108 tests
+- Test coverage maintained at 81% (above 75% threshold)
+
 ## [0.5.4] - 2026-03-27
 
 ### Added
