@@ -17,6 +17,9 @@ class GraphLoader:
         self.package_name = package_name
         self._node_ids: dict[str, str] = {}  # Track created nodes for relationships
         self._deferred_relationships: list[tuple] = []  # Relationships to create later
+        self._module_dependencies: set[tuple[str, str]] = (
+            set()
+        )  # Track (from_module, to_module) pairs for DEPENDS_ON
 
     def clear_package(self) -> int:
         """Clear all nodes for this package from the graph.
@@ -106,21 +109,30 @@ class GraphLoader:
                 to_id = self._find_node_by_simple_name(to_name)
 
             if to_id:
-                if rel_type == "inherits":
-                    self.connection.create_relationship(from_id, to_id, "INHERITS")
-                elif rel_type == "calls":
-                    self.connection.create_relationship(from_id, to_id, "CALLS")
-                elif rel_type == "imports":
-                    self.connection.create_relationship(from_id, to_id, "IMPORTS")
-                elif rel_type == "from_module":
-                    self.connection.create_relationship(from_id, to_id, "FROM_MODULE")
-            elif rel_type == "from_module":
+                match rel_type:
+                    case "inherits":
+                        self.connection.create_relationship(from_id, to_id, "INHERITS")
+                    case "calls":
+                        self.connection.create_relationship(from_id, to_id, "CALLS")
+                    case "imports":
+                        self.connection.create_relationship(from_id, to_id, "IMPORTS")
+                    case "from_module":
+                        self.connection.create_relationship(from_id, to_id, "FROM_MODULE")
+                    case "depends_on":
+                        self.connection.create_relationship(from_id, to_id, "DEPENDS_ON")
+            elif rel_type in ("from_module", "depends_on"):
                 # External module doesn't exist in graph yet - create External Module node
                 external_node_id = self.connection.create_node(
                     "Module", {"name": to_name, "package": to_name, "is_external": True}
                 )
                 self._node_ids[to_name] = external_node_id
-                self.connection.create_relationship(from_id, external_node_id, "FROM_MODULE")
+                match rel_type:
+                    case "from_module":
+                        self.connection.create_relationship(
+                            from_id, external_node_id, "FROM_MODULE"
+                        )
+                    case "depends_on":
+                        self.connection.create_relationship(from_id, external_node_id, "DEPENDS_ON")
 
     def _find_node_by_simple_name(self, simple_name: str) -> str | None:
         """Find a node by its simple name (last component of FQN).
@@ -218,39 +230,6 @@ class GraphLoader:
         self._node_ids[fqn] = node_id
         return node_id
 
-    def _create_import_nodes(self, import_info, module_node_id: str, module_name: str) -> None:
-        """Create Import nodes for an import statement.
-
-        Args:
-            import_info: ImportInfo with import details
-            module_node_id: ID of the importing module node
-            module_name: FQN of the importing module
-        """
-        # Parse module path into from_module and submodule_path
-        module_parts = import_info.module.split(".")
-        from_module = module_parts[0]
-        submodule_path = ".".join(module_parts[1:]) if len(module_parts) > 1 else None
-
-        # Handle different import patterns
-        if import_info.alias:
-            # import X as Y or import X.Y as Z
-            self._create_single_import_node(
-                module_node_id, from_module, submodule_path, import_info.alias, module_name
-            )
-        elif import_info.module in import_info.names:
-            # import X (where X is in names list)
-            # Use the top-level module name as local_name
-            self._create_single_import_node(
-                module_node_id, from_module, submodule_path, from_module, module_name
-            )
-        else:
-            # from X import Y, Z (possibly with aliases)
-            for name in import_info.names:
-                local_name = import_info.aliases.get(name, name)
-                self._create_single_import_node(
-                    module_node_id, from_module, submodule_path, local_name, module_name
-                )
-
     def _create_single_import_node(
         self,
         module_node_id: str,
@@ -289,4 +268,46 @@ class GraphLoader:
         external_module = f"{from_module}.{submodule_path}" if submodule_path else from_module
         self._deferred_relationships.append(("from_module", import_node_id, external_module))
 
+        # Track deferred DEPENDS_ON relationship (Module -> Module shortcut)
+        # Use set to deduplicate - only one DEPENDS_ON per module pair
+        dependency_pair = (importing_module_name, external_module)
+        if dependency_pair not in self._module_dependencies:
+            self._module_dependencies.add(dependency_pair)
+            self._deferred_relationships.append(
+                ("depends_on", importing_module_name, external_module)
+            )
+
         return import_node_id
+
+    def _create_import_nodes(self, import_info, module_node_id: str, module_name: str) -> None:
+        """Create Import nodes for an import statement.
+
+        Args:
+            import_info: ImportInfo with import details
+            module_node_id: ID of the importing module node
+            module_name: FQN of the importing module
+        """
+        # Parse module path into from_module and submodule_path
+        module_parts = import_info.module.split(".")
+        from_module = module_parts[0]
+        submodule_path = ".".join(module_parts[1:]) if len(module_parts) > 1 else None
+
+        # Handle different import patterns
+        if import_info.alias:
+            # import X as Y or import X.Y as Z
+            self._create_single_import_node(
+                module_node_id, from_module, submodule_path, import_info.alias, module_name
+            )
+        elif import_info.module in import_info.names:
+            # import X (where X is in names list)
+            # Use the top-level module name as local_name
+            self._create_single_import_node(
+                module_node_id, from_module, submodule_path, from_module, module_name
+            )
+        else:
+            # from X import Y, Z (possibly with aliases)
+            for name in import_info.names:
+                local_name = import_info.aliases.get(name, name)
+                self._create_single_import_node(
+                    module_node_id, from_module, submodule_path, local_name, module_name
+                )
