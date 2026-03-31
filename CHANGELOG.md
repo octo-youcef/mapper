@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.3] - 2026-03-31
+
+### Added
+- **Comprehensive tests for inheritance resolution** - Verify INHERITS relationships use FQNs
+  - Added test for inheritance with FQN resolution across modules
+  - Added test for external base classes (e.g., pydantic.BaseModel)
+  - Updated function calls test to use CallInfo objects with FQNs
+  - Coverage: graph_loader/loader.py at 93% (up from 91%)
+  
+### Changed
+- Improved test suite to verify end-to-end FQN resolution for inheritance
+- Tests now validate that graph loader uses resolved FQNs from name resolver
+- Better coverage of deferred relationship creation
+
 ## [0.6.2] - 2026-03-31
 
 ### Added
