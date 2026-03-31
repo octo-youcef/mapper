@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.4] - 2026-03-31
+
+### Changed
+- **Structured parameter storage** - Use ParameterInfo dataclass for consistency
+  - Changed `FunctionInfo.parameters` from `list[dict[str, str | None]]` to `list[ParameterInfo]`
+  - Updated ASTExtractor to create ParameterInfo objects instead of dicts
+  - Maintains consistency with other structured models (CallInfo, ImportInfo, ClassInfo)
+  - Updated test assertions to use ParameterInfo attributes (.name, .type)
+  - All 126 tests passing, coverage maintained at 81%
+  
+### Technical
+- ParameterInfo dataclass now actively used (was defined but unused)
+- Better type safety for parameter handling
+- Cleaner code with consistent dataclass usage throughout extraction pipeline
+
 ## [0.6.3] - 2026-03-31
 
 ### Added
