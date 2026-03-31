@@ -504,6 +504,59 @@ def test_analyze_options():
 
 **Benefits:** Better organization, easier setup/teardown, clearer test hierarchy
 
+**Use parametrized tests for repetitive patterns:**
+
+```python
+# ✅ CORRECT - Parametrize similar test cases
+@pytest.mark.parametrize(
+    "flag,should_suppress_output",
+    [
+        ("--quiet", True),
+        ("-q", True),
+        ("--verbose", False),
+        ("-v", False),
+    ],
+    ids=["quiet", "quiet-short", "verbose", "verbose-short"],
+)
+def test_output_flags(self, flag, should_suppress_output):
+    """Test command with output control flags."""
+    result = runner.invoke(app, ["analyse", "start", str(tmp_path), flag])
+    assert result.exit_code == 0
+    if should_suppress_output:
+        assert "Analyzing:" not in result.stdout
+
+# ❌ INCORRECT - Duplicate test logic
+def test_quiet_flag(self):
+    """Test command with --quiet flag."""
+    result = runner.invoke(app, ["analyse", "start", str(tmp_path), "--quiet"])
+    assert result.exit_code == 0
+    assert "Analyzing:" not in result.stdout
+
+def test_quiet_short_flag(self):
+    """Test command with -q flag."""
+    result = runner.invoke(app, ["analyse", "start", str(tmp_path), "-q"])
+    assert result.exit_code == 0
+    assert "Analyzing:" not in result.stdout
+```
+
+**When to parametrize:**
+- Testing same logic with different inputs/outputs
+- Flag variations (`--verbose`/`-v`, `--quiet`/`-q`)
+- Multiple valid data patterns (import styles, name resolution patterns)
+- Edge cases with different values
+
+**When NOT to parametrize:**
+- Tests with different mock configurations or complex unique setups
+- Tests that verify fundamentally different behavior
+- Tests where shared setup would obscure intent
+
+**Test IDs:**
+- Always provide `ids` parameter for readable test output
+- Use descriptive names: `"simple-import"`, `"import-with-alias"`
+- Use lambda for complex parameter sets: `ids=lambda x: x if isinstance(x, str) and "-" in x else ""`
+
+**Benefits:** Reduces code duplication, makes test patterns explicit, easier to add new test cases
+
 ---
 
 ## Git Workflow

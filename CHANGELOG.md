@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-03-31
+
+### Changed
+- **Test infrastructure improvements**
+  - Refactored repetitive test patterns to use `@pytest.mark.parametrize`
+  - Improved test readability with descriptive test IDs
+  - Parametrized 5 test methods across CLI and name_resolver modules
+  - Added testing guidelines for parametrization to project documentation
+  - Sets standard for future test development
+  
+### Documentation
+- Added comprehensive parametrization guidelines to CLAUDE.md
+  - When to use parametrization (repetitive patterns, flag variations)
+  - When NOT to use parametrization (complex unique setups)
+  - Test ID best practices
+  - Code examples and patterns
+
 ## [0.6.0] - 2026-03-29
 
 ### Added
