@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-03-31
+
+### Added
+- **Function call resolution** - Track CALLS relationships with fully qualified names
+  - NameResolver now resolves function/method call names to FQNs
+  - Resolves both simple calls (`foo()`) and attribute calls (`pd.DataFrame()`)
+  - Updates CallInfo.full_name field with resolved FQN
+  - Graph loader uses resolved names for accurate CALLS relationships
+  - Unresolved calls tracked in extraction result
+  - Added 2 new tests for function and method call resolution
+  - Coverage: name_resolver/resolver.py at 99% (up from 98%)
+
+### Changed
+- Graph loader now uses `CallInfo.full_name` (resolved FQN) instead of `CallInfo.name` for CALLS relationships
+- More accurate relationship tracking between functions across modules
+
 ## [0.6.1] - 2026-03-31
 
 ### Changed
