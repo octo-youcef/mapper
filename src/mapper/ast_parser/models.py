@@ -69,7 +69,7 @@ class FunctionInfo:
     name: str
     is_public: bool
     docstring: str | None = None
-    parameters: list[dict[str, str | None]] = attrs.field(factory=list)
+    parameters: list[ParameterInfo] = attrs.field(factory=list)
     return_type: str | None = None
     decorators: list[dict[str, str | list]] = attrs.field(factory=list)
     calls: list[CallInfo] = attrs.field(factory=list)

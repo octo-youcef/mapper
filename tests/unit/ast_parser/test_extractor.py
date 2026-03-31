@@ -53,8 +53,10 @@ class TestASTExtractor:
         func2 = next(f for f in result.functions if f.name == "function_with_params")
         assert func2.docstring == "Function with parameters and return type."
         assert len(func2.parameters) == 2
-        assert func2.parameters[0] == {"name": "arg1", "type": "str"}
-        assert func2.parameters[1] == {"name": "arg2", "type": "int"}
+        assert func2.parameters[0].name == "arg1"
+        assert func2.parameters[0].type == "str"
+        assert func2.parameters[1].name == "arg2"
+        assert func2.parameters[1].type == "int"
         assert func2.return_type == "bool"
 
     def test_extract_classes(self):
