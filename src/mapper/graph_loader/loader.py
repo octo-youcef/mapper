@@ -84,10 +84,9 @@ class GraphLoader:
                 call_name = call.full_name if hasattr(call, "full_name") else call
                 self._deferred_relationships.append(("calls", func_fqn, call_name))
 
-        # Handle imports
+        # Handle imports - create Import nodes
         for import_info in extraction.imports:
-            # Track imports for later relationship creation
-            self._deferred_relationships.append(("imports", module_name, import_info.module))
+            self._create_import_nodes(import_info, module_node_id, module_name)
 
     def finalize(self) -> None:
         """Finalize loading by creating deferred relationships.
@@ -113,6 +112,15 @@ class GraphLoader:
                     self.connection.create_relationship(from_id, to_id, "CALLS")
                 elif rel_type == "imports":
                     self.connection.create_relationship(from_id, to_id, "IMPORTS")
+                elif rel_type == "from_module":
+                    self.connection.create_relationship(from_id, to_id, "FROM_MODULE")
+            elif rel_type == "from_module":
+                # External module doesn't exist in graph yet - create External Module node
+                external_node_id = self.connection.create_node(
+                    "Module", {"name": to_name, "package": to_name, "is_external": True}
+                )
+                self._node_ids[to_name] = external_node_id
+                self.connection.create_relationship(from_id, external_node_id, "FROM_MODULE")
 
     def _find_node_by_simple_name(self, simple_name: str) -> str | None:
         """Find a node by its simple name (last component of FQN).
@@ -209,3 +217,76 @@ class GraphLoader:
         node_id = self.connection.create_node(label, properties)
         self._node_ids[fqn] = node_id
         return node_id
+
+    def _create_import_nodes(self, import_info, module_node_id: str, module_name: str) -> None:
+        """Create Import nodes for an import statement.
+
+        Args:
+            import_info: ImportInfo with import details
+            module_node_id: ID of the importing module node
+            module_name: FQN of the importing module
+        """
+        # Parse module path into from_module and submodule_path
+        module_parts = import_info.module.split(".")
+        from_module = module_parts[0]
+        submodule_path = ".".join(module_parts[1:]) if len(module_parts) > 1 else None
+
+        # Handle different import patterns
+        if import_info.alias:
+            # import X as Y or import X.Y as Z
+            self._create_single_import_node(
+                module_node_id, from_module, submodule_path, import_info.alias, module_name
+            )
+        elif import_info.module in import_info.names:
+            # import X (where X is in names list)
+            # Use the top-level module name as local_name
+            self._create_single_import_node(
+                module_node_id, from_module, submodule_path, from_module, module_name
+            )
+        else:
+            # from X import Y, Z (possibly with aliases)
+            for name in import_info.names:
+                local_name = import_info.aliases.get(name, name)
+                self._create_single_import_node(
+                    module_node_id, from_module, submodule_path, local_name, module_name
+                )
+
+    def _create_single_import_node(
+        self,
+        module_node_id: str,
+        from_module: str,
+        submodule_path: str | None,
+        local_name: str,
+        importing_module_name: str,
+    ) -> str:
+        """Create a single Import node.
+
+        Args:
+            module_node_id: ID of the importing module node
+            from_module: Base module being imported
+            submodule_path: Submodule path if any
+            local_name: Local name (with alias if present)
+            importing_module_name: FQN of importing module
+
+        Returns:
+            Node ID of created Import node
+        """
+        properties = {
+            "from_module": from_module,
+            "local_name": local_name,
+            "package": self.package_name,
+        }
+        if submodule_path:
+            properties["submodule_path"] = submodule_path
+
+        import_node_id = self.connection.create_node("Import", properties)
+
+        # Create Module -[IMPORTS]-> Import relationship
+        self.connection.create_relationship(module_node_id, import_node_id, "IMPORTS")
+
+        # Track deferred FROM_MODULE relationship to external module
+        # Build full module path for the external module
+        external_module = f"{from_module}.{submodule_path}" if submodule_path else from_module
+        self._deferred_relationships.append(("from_module", import_node_id, external_module))
+
+        return import_node_id

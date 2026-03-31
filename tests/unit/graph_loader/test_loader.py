@@ -94,20 +94,114 @@ class TestGraphLoader:
         assert properties["name"] == "my_function"
         assert properties["return_type"] == "int"
 
-    def test_load_with_imports(self):
-        """Test loading imports creates IMPORTS relationships."""
+    def test_load_with_imports_creates_import_nodes(self):
+        """Test loading imports creates Import nodes with correct properties."""
         mock_connection = Mock()
+        mock_connection.create_node.side_effect = lambda *args, **kwargs: (
+            f"node_{len(mock_connection.create_node.call_args_list)}"
+        )
+
         loader = graph_loader.GraphLoader(mock_connection, package_name="test-pkg")
 
         module_info = ast_parser.models.ModuleInfo(path="test.py", name="test")
-        import_info = ast_parser.models.ImportInfo(module="os", names=["path"])
+        # from pandas import DataFrame as DF
+        import_info = ast_parser.models.ImportInfo(
+            module="pandas", names=["DataFrame"], aliases={"DataFrame": "DF"}
+        )
         extraction = ast_parser.models.ExtractionResult(module=module_info, imports=[import_info])
 
         loader.load_extraction(extraction)
 
-        # Should create module node and import relationship
-        assert mock_connection.create_node.call_count >= 1
-        # Imports relationships may be created differently
+        # Should create: Module node + Import node
+        assert mock_connection.create_node.call_count == 2
+
+        # Verify Import node properties
+        import_node_call = mock_connection.create_node.call_args_list[1]
+        assert import_node_call[0][0] == "Import"
+        import_props = import_node_call[0][1]
+        assert import_props["from_module"] == "pandas"
+        assert import_props["local_name"] == "DF"
+        assert "submodule_path" not in import_props  # No submodule
+
+        # Verify Module -[IMPORTS]-> Import relationship
+        imports_rels = [
+            call
+            for call in mock_connection.create_relationship.call_args_list
+            if len(call[0]) >= 3 and call[0][2] == "IMPORTS"
+        ]
+        assert len(imports_rels) == 1
+
+    def test_load_with_submodule_import(self):
+        """Test loading import with submodule path."""
+        mock_connection = Mock()
+        mock_connection.create_node.side_effect = lambda *args, **kwargs: (
+            f"node_{len(mock_connection.create_node.call_args_list)}"
+        )
+
+        loader = graph_loader.GraphLoader(mock_connection, package_name="test-pkg")
+
+        module_info = ast_parser.models.ModuleInfo(path="test.py", name="test")
+        # from pyspark.sql import functions as F
+        import_info = ast_parser.models.ImportInfo(
+            module="pyspark.sql", names=["functions"], aliases={"functions": "F"}
+        )
+        extraction = ast_parser.models.ExtractionResult(module=module_info, imports=[import_info])
+
+        loader.load_extraction(extraction)
+
+        # Verify Import node has submodule_path
+        import_node_call = mock_connection.create_node.call_args_list[1]
+        import_props = import_node_call[0][1]
+        assert import_props["from_module"] == "pyspark"
+        assert import_props["submodule_path"] == "sql"
+        assert import_props["local_name"] == "F"
+
+    def test_load_with_simple_import(self):
+        """Test loading simple import (import X as Y)."""
+        mock_connection = Mock()
+        mock_connection.create_node.side_effect = lambda *args, **kwargs: (
+            f"node_{len(mock_connection.create_node.call_args_list)}"
+        )
+
+        loader = graph_loader.GraphLoader(mock_connection, package_name="test-pkg")
+
+        module_info = ast_parser.models.ModuleInfo(path="test.py", name="test")
+        # import pandas as pd
+        import_info = ast_parser.models.ImportInfo(module="pandas", names=["pandas"], alias="pd")
+        extraction = ast_parser.models.ExtractionResult(module=module_info, imports=[import_info])
+
+        loader.load_extraction(extraction)
+
+        # Verify Import node properties
+        import_node_call = mock_connection.create_node.call_args_list[1]
+        import_props = import_node_call[0][1]
+        assert import_props["from_module"] == "pandas"
+        assert import_props["local_name"] == "pd"
+
+    def test_load_with_multiple_imports_from_same_module(self):
+        """Test loading from X import Y, Z creates multiple Import nodes."""
+        mock_connection = Mock()
+        mock_connection.create_node.side_effect = lambda *args, **kwargs: (
+            f"node_{len(mock_connection.create_node.call_args_list)}"
+        )
+
+        loader = graph_loader.GraphLoader(mock_connection, package_name="test-pkg")
+
+        module_info = ast_parser.models.ModuleInfo(path="test.py", name="test")
+        # from typing import Optional, List
+        import_info = ast_parser.models.ImportInfo(module="typing", names=["Optional", "List"])
+        extraction = ast_parser.models.ExtractionResult(module=module_info, imports=[import_info])
+
+        loader.load_extraction(extraction)
+
+        # Should create: Module node + 2 Import nodes
+        assert mock_connection.create_node.call_count == 3
+
+        # Verify both Import nodes have correct local_name
+        import1_props = mock_connection.create_node.call_args_list[1][0][1]
+        import2_props = mock_connection.create_node.call_args_list[2][0][1]
+        local_names = {import1_props["local_name"], import2_props["local_name"]}
+        assert local_names == {"Optional", "List"}
 
     def test_load_class_with_methods(self):
         """Test loading a class with methods."""
