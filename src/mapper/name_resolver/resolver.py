@@ -23,35 +23,42 @@ class NameResolver:
         """
         self.imports = imports
         self.module_name = module_name
-        self._name_map: dict[str, str] = {}  # local_name -> FQN
-        self._build_name_map()
+        self._name_map = self._build_name_map()
 
-    def _build_name_map(self) -> None:
-        """Build mapping from local names to FQNs."""
+    def _build_name_map(self) -> dict[str, str]:
+        """Build mapping from local names to FQNs.
+
+        Returns:
+            Dictionary mapping local names to fully qualified names
+        """
+        name_map: dict[str, str] = {}
+
         for imp in self.imports:
             if imp.alias:
                 # import pandas as pd -> pd maps to pandas
-                self._name_map[imp.alias] = imp.module
+                name_map[imp.alias] = imp.module
             elif imp.module in imp.names:
                 # import pandas -> pandas maps to pandas (not pandas.pandas)
                 # This is the case where module and name are the same
                 # Get the top-level module name for multi-part imports
                 # e.g., import os.path -> os maps to os
                 top_level = imp.module.split(".")[0]
-                self._name_map[top_level] = top_level
+                name_map[top_level] = top_level
             else:
                 # from X import Y (no alias)
                 # Y maps to X.Y
                 for name in imp.names:
                     if name not in imp.aliases:  # Not aliased
                         fqn = f"{imp.module}.{name}"
-                        self._name_map[name] = fqn
+                        name_map[name] = fqn
 
             # from X import Y as Z
             # Z maps to X.Y
             for original, alias in imp.aliases.items():
                 fqn = f"{imp.module}.{original}"
-                self._name_map[alias] = fqn
+                name_map[alias] = fqn
+
+        return name_map
 
     def resolve(self, name: str, context: str | None = None) -> str | models.UnresolvedName:
         """Resolve a local name to its FQN.
@@ -114,7 +121,9 @@ class NameResolver:
         for func in result.functions:
             func_fqn = f"{result.module.name}.{func.name}"
             for dec_info in func.decorators:
-                resolved = self.resolve(dec_info["name"], context=func_fqn)
+                decorator_name = dec_info["name"]
+                assert isinstance(decorator_name, str)  # Decorator name is always str
+                resolved = self.resolve(decorator_name, context=func_fqn)
                 if isinstance(resolved, models.UnresolvedName):
                     unresolved.append(resolved)
                 else:
@@ -136,7 +145,9 @@ class NameResolver:
             for method in class_info.methods:
                 method_fqn = f"{class_fqn}.{method.name}"
                 for dec_info in method.decorators:
-                    resolved = self.resolve(dec_info["name"], context=method_fqn)
+                    decorator_name = dec_info["name"]
+                    assert isinstance(decorator_name, str)  # Decorator name is always str
+                    resolved = self.resolve(decorator_name, context=method_fqn)
                     if isinstance(resolved, models.UnresolvedName):
                         unresolved.append(resolved)
                     else:
