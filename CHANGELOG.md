@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.5] - 2026-03-31
+
+### Added
+- **Import nodes in Neo4j** - Track imports as first-class entities in the graph
+  - Import nodes with properties: `from_module`, `submodule_path`, `local_name`
+  - Module -[IMPORTS]-> Import -[FROM_MODULE]-> External Module relationships
+  - External Module nodes created automatically with `is_external=True`
+  - Handles all import patterns:
+    - `import X` → from_module="X", local_name="X"
+    - `import X as Y` → from_module="X", local_name="Y"
+    - `from X import Y` → from_module="X", local_name="Y"
+    - `from X import Y as Z` → from_module="X", local_name="Z"
+    - `from X.Y import Z` → from_module="X", submodule_path="Y", local_name="Z"
+  - Added 4 comprehensive tests for Import node creation
+  
+- **DEPENDS_ON relationships** - Module-level dependency tracking
+  - Module -[DEPENDS_ON]-> Module short-circuit relationships
+  - Coexists with detailed Import node structure for both fast queries and granular analysis
+  - Deduplicated: one DEPENDS_ON per module pair regardless of import count
+  - Enables fast centrality calculations and module dependency analysis
+  - Added 3 comprehensive tests for DEPENDS_ON creation and deduplication
+  - Coverage: 82% overall (up from 81%), graph_loader at 94% (up from 89%)
+
+### Changed
+- Import tracking moved from simple deferred relationships to structured Import nodes
+- Enables richer dependency analysis queries
+- Foundation for DECORATED_WITH relationships (v0.6.6)
+
 ## [0.6.4] - 2026-03-31
 
 ### Changed

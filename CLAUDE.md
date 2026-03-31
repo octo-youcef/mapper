@@ -805,4 +805,4 @@ just mapper [args]    # Run CLI tool
 ---
 
 **Last Updated**: 2026-03-31
-**Current Version**: 0.6.4
+**Current Version**: 0.6.5
