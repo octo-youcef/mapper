@@ -131,35 +131,106 @@ class TestGraphLoader:
         assert mock_connection.create_relationship.call_count >= 2
 
     def test_load_with_inheritance(self):
-        """Test loading class inheritance creates INHERITS relationships."""
+        """Test loading class inheritance with FQN resolution."""
         mock_connection = Mock()
+        mock_connection.create_node.side_effect = lambda *args, **kwargs: (
+            f"node_{len(mock_connection.create_node.call_args_list)}"
+        )
+
         loader = graph_loader.GraphLoader(mock_connection, package_name="test-pkg")
 
-        module_info = ast_parser.models.ModuleInfo(path="test.py", name="test")
-        class_info = ast_parser.models.ClassInfo(
-            name="ChildClass", is_public=True, bases=["ParentClass"]
+        # Create parent class in one module
+        parent_module = ast_parser.models.ModuleInfo(path="base.py", name="base")
+        parent_class = ast_parser.models.ClassInfo(name="ParentClass", is_public=True)
+        parent_extraction = ast_parser.models.ExtractionResult(
+            module=parent_module, classes=[parent_class]
         )
-        extraction = ast_parser.models.ExtractionResult(module=module_info, classes=[class_info])
 
-        loader.load_extraction(extraction)
+        # Create child class in another module with resolved FQN for base
+        child_module = ast_parser.models.ModuleInfo(path="test.py", name="test")
+        child_class = ast_parser.models.ClassInfo(
+            name="ChildClass",
+            is_public=True,
+            bases=["base.ParentClass"],  # FQN from name resolution
+        )
+        child_extraction = ast_parser.models.ExtractionResult(
+            module=child_module, classes=[child_class]
+        )
 
-        # Should track inheritance for later relationship creation
-        # Actual INHERITS relationships created after all classes loaded
+        # Load both extractions
+        loader.load_extraction(parent_extraction)
+        loader.load_extraction(child_extraction)
+
+        # Finalize to create INHERITS relationships
+        loader.finalize()
+
+        # Verify INHERITS relationship was created with correct FQNs
+        # Should find both nodes by FQN and create relationship
+        relationship_calls = [
+            call
+            for call in mock_connection.create_relationship.call_args_list
+            if len(call[0]) >= 3 and call[0][2] == "INHERITS"
+        ]
+        assert len(relationship_calls) >= 1, "Should create INHERITS relationship"
 
     def test_load_with_function_calls(self):
-        """Test loading function calls creates CALLS relationships."""
+        """Test loading function calls with FQN resolution."""
         mock_connection = Mock()
+        mock_connection.create_node.side_effect = lambda *args, **kwargs: (
+            f"node_{len(mock_connection.create_node.call_args_list)}"
+        )
+
         loader = graph_loader.GraphLoader(mock_connection, package_name="test-pkg")
 
         module_info = ast_parser.models.ModuleInfo(path="test.py", name="test")
         func_info = ast_parser.models.FunctionInfo(
-            name="caller", is_public=True, calls=["callee", "another_func"]
+            name="caller",
+            is_public=True,
+            calls=[
+                ast_parser.models.CallInfo(
+                    name="DataFrame",
+                    call_type=ast_parser.models.CallType.ATTRIBUTE,
+                    full_name="pandas.DataFrame",  # FQN from name resolution
+                    qualifier="pd",
+                )
+            ],
         )
         extraction = ast_parser.models.ExtractionResult(module=module_info, functions=[func_info])
 
         loader.load_extraction(extraction)
 
-        # Should track calls for later relationship creation
+        # Verify deferred relationships include the resolved FQN
+        assert len(loader._deferred_relationships) > 0
+        call_rels = [rel for rel in loader._deferred_relationships if rel[0] == "calls"]
+        assert len(call_rels) >= 1
+        # Should use full_name (FQN) not just name
+        assert call_rels[0][2] == "pandas.DataFrame"
+
+    def test_load_with_external_base_class(self):
+        """Test loading class with external base class (not in analyzed code)."""
+        mock_connection = Mock()
+        mock_connection.create_node.side_effect = lambda *args, **kwargs: (
+            f"node_{len(mock_connection.create_node.call_args_list)}"
+        )
+
+        loader = graph_loader.GraphLoader(mock_connection, package_name="test-pkg")
+
+        module_info = ast_parser.models.ModuleInfo(path="test.py", name="test")
+        # Class inheriting from external package (e.g., pydantic.BaseModel)
+        class_info = ast_parser.models.ClassInfo(
+            name="User",
+            is_public=True,
+            bases=["pydantic.BaseModel"],  # FQN from name resolution
+        )
+        extraction = ast_parser.models.ExtractionResult(module=module_info, classes=[class_info])
+
+        loader.load_extraction(extraction)
+        loader.finalize()
+
+        # Should track the inheritance relationship even if base class not in graph
+        # (Will not create relationship since target node doesn't exist, but shouldn't crash)
+        assert mock_connection.create_node.call_count >= 2  # module + class
+        # Relationship creation depends on whether base class exists in graph
 
 
 class TestGraphLoaderBatch:
