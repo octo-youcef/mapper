@@ -14,17 +14,6 @@ class NameResolver:
     - from X import Y as Z -> Z maps to X.Y
     """
 
-    def __init__(self, imports: list[ast_models.ImportInfo], module_name: str):
-        """Initialize name resolver.
-
-        Args:
-            imports: List of imports from module
-            module_name: Name of the module being analyzed (for internal resolution)
-        """
-        self.imports = imports
-        self.module_name = module_name
-        self._name_map = self._build_name_map()
-
     def _build_name_map(self) -> dict[str, str]:
         """Build mapping from local names to FQNs.
 
@@ -59,6 +48,17 @@ class NameResolver:
                 name_map[alias] = fqn
 
         return name_map
+
+    def __init__(self, imports: list[ast_models.ImportInfo], module_name: str):
+        """Initialize name resolver.
+
+        Args:
+            imports: List of imports from module
+            module_name: Name of the module being analyzed (for internal resolution)
+        """
+        self.imports = imports
+        self.module_name = module_name
+        self._name_map = self._build_name_map()
 
     def resolve(self, name: str, context: str | None = None) -> str | models.UnresolvedName:
         """Resolve a local name to its FQN.
