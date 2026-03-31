@@ -63,7 +63,8 @@ class GraphLoader:
 
                 # Track method calls for later
                 for call in method.calls:
-                    call_name = call.name if hasattr(call, "name") else call
+                    # Use full_name which contains the resolved FQN
+                    call_name = call.full_name if hasattr(call, "full_name") else call
                     self._deferred_relationships.append(("calls", method_fqn, call_name))
 
             # Track inheritance for later
@@ -79,8 +80,8 @@ class GraphLoader:
 
             # Track function calls for later
             for call in func_info.calls:
-                # Extract call name from CallInfo object (temporary - will be enhanced in Patch 2)
-                call_name = call.name if hasattr(call, "name") else call
+                # Use full_name which contains the resolved FQN
+                call_name = call.full_name if hasattr(call, "full_name") else call
                 self._deferred_relationships.append(("calls", func_fqn, call_name))
 
         # Handle imports
