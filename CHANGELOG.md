@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.6] - 2026-04-01
+
+### Added
+- **Type-safe enums for graph operations** - Strict type safety throughout graph layer
+  - `NodeLabel` enum: MODULE, CLASS, FUNCTION, METHOD, IMPORT
+  - `RelationshipType` enum: DEFINES, CONTAINS, INHERITS, CALLS, IMPORTS, FROM_MODULE, DEPENDS_ON
+  - `ResolutionFailureReason` enum: NOT_IN_IMPORTS, EXTERNAL_PACKAGE, DYNAMIC_IMPORT, BUILTIN, UNDEFINED
+  - Enums inherit from `str` for Neo4j driver compatibility
+  - Catch-all cases in match statements raise on unknown relationship types
+
+### Changed
+- Updated `Neo4jConnection.create_node()` signature: `label: NodeLabel` (strict enum type)
+- Updated `Neo4jConnection.create_relationship()` signature: `rel_type: RelationshipType` (strict enum type)
+- Updated `UnresolvedName.reason` field: `ResolutionFailureReason | None` (strict enum type)
+- All graph_loader operations now use enum values instead of string literals
+- Better IDE autocomplete and compile-time type checking
+- All 132 tests passing, mypy clean
+
 ## [0.6.5] - 2026-03-31
 
 ### Added
