@@ -148,7 +148,9 @@ class TestNameResolverWithExtractionResult:
 
     def test_resolve_decorator_names(self):
         """Test resolving decorator names on functions."""
-        imports = [models.ImportInfo(module="attrs", names=["define"], aliases={"define": "dataclass"})]
+        imports = [
+            models.ImportInfo(module="attrs", names=["define"], aliases={"define": "dataclass"})
+        ]
 
         func = models.FunctionInfo(
             name="MyClass",
