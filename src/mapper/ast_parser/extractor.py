@@ -139,7 +139,7 @@ class ASTExtractor:
             param_type = None
             if arg.annotation:
                 param_type = self._get_type_string(arg.annotation)
-            parameters.append({"name": arg.arg, "type": param_type})
+            parameters.append(models.ParameterInfo(name=arg.arg, type=param_type))
 
         # Extract return type
         return_type = None
