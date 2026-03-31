@@ -35,7 +35,11 @@ class TestNameResolver:
             ),
             # from X import Y as Z pattern
             (
-                [models.ImportInfo(module="typing", names=["Optional"], aliases={"Optional": "Opt"})],
+                [
+                    models.ImportInfo(
+                        module="typing", names=["Optional"], aliases={"Optional": "Opt"}
+                    )
+                ],
                 "Opt",
                 "typing.Optional",
                 "from-import-with-alias",
@@ -88,7 +92,11 @@ class TestNameResolver:
             ),
             # From import with alias, original should not resolve
             (
-                [models.ImportInfo(module="typing", names=["Optional"], aliases={"Optional": "Opt"})],
+                [
+                    models.ImportInfo(
+                        module="typing", names=["Optional"], aliases={"Optional": "Opt"}
+                    )
+                ],
                 "Optional",
                 "from-aliased-original",
             ),
@@ -135,7 +143,13 @@ class TestNameResolver:
         ids=lambda x: x if isinstance(x, str) and "-" in x else "",
     )
     def test_unresolved_names(
-        self, imports, name_to_resolve, context, expected_original, expected_reason_contains, test_id
+        self,
+        imports,
+        name_to_resolve,
+        context,
+        expected_original,
+        expected_reason_contains,
+        test_id,
     ):
         """Test that unresolved names return UnresolvedName with correct metadata."""
         resolver = name_resolver.NameResolver(imports, "test_module")
