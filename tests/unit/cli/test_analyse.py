@@ -2,6 +2,7 @@
 
 from unittest.mock import MagicMock, Mock, patch
 
+import pytest
 from typer.testing import CliRunner
 
 from mapper.cli import app
@@ -66,56 +67,31 @@ class TestStartCommand:
         result = runner.invoke(app, ["analyse", "start", str(tmp_path), "--force"])
         assert result.exit_code == 0
 
+    @pytest.mark.parametrize(
+        "flag,should_suppress_output",
+        [
+            ("--quiet", True),
+            ("-q", True),
+            ("--verbose", False),
+            ("-v", False),
+        ],
+        ids=["quiet", "quiet-short", "verbose", "verbose-short"],
+    )
     @patch("mapper.cli.analyse.graph.Neo4jConnection.from_config")
-    def test_quiet_flag(self, mock_from_config, tmp_path):
-        """Test start command with --quiet flag."""
+    def test_output_flags(self, mock_from_config, tmp_path, flag, should_suppress_output):
+        """Test start command with output control flags (quiet/verbose)."""
         # Mock Neo4j connection
         mock_conn = Mock()
         mock_from_config.return_value = mock_conn
 
         (tmp_path / "test.py").write_text("def test(): pass")
 
-        result = runner.invoke(app, ["analyse", "start", str(tmp_path), "--quiet"])
-        assert result.exit_code == 0
-        # Quiet mode should suppress most output
-        assert "Analyzing:" not in result.stdout
-
-    @patch("mapper.cli.analyse.graph.Neo4jConnection.from_config")
-    def test_verbose_flag(self, mock_from_config, tmp_path):
-        """Test start command with --verbose flag."""
-        # Mock Neo4j connection
-        mock_conn = Mock()
-        mock_from_config.return_value = mock_conn
-
-        (tmp_path / "test.py").write_text("def test(): pass")
-
-        result = runner.invoke(app, ["analyse", "start", str(tmp_path), "--verbose"])
+        result = runner.invoke(app, ["analyse", "start", str(tmp_path), flag])
         assert result.exit_code == 0
 
-    @patch("mapper.cli.analyse.graph.Neo4jConnection.from_config")
-    def test_verbose_short_flag(self, mock_from_config, tmp_path):
-        """Test start command with -v short flag."""
-        # Mock Neo4j connection
-        mock_conn = Mock()
-        mock_from_config.return_value = mock_conn
-
-        (tmp_path / "test.py").write_text("def test(): pass")
-
-        result = runner.invoke(app, ["analyse", "start", str(tmp_path), "-v"])
-        assert result.exit_code == 0
-
-    @patch("mapper.cli.analyse.graph.Neo4jConnection.from_config")
-    def test_quiet_short_flag(self, mock_from_config, tmp_path):
-        """Test start command with -q short flag."""
-        # Mock Neo4j connection
-        mock_conn = Mock()
-        mock_from_config.return_value = mock_conn
-
-        (tmp_path / "test.py").write_text("def test(): pass")
-
-        result = runner.invoke(app, ["analyse", "start", str(tmp_path), "-q"])
-        assert result.exit_code == 0
-        assert "Analyzing:" not in result.stdout
+        # Check output suppression for quiet flags
+        if should_suppress_output:
+            assert "Analyzing:" not in result.stdout
 
     @patch("mapper.cli.analyse.graph.Neo4jConnection.from_config")
     def test_multiple_excludes(self, mock_from_config, tmp_path):
@@ -159,14 +135,14 @@ class TestListCommand:
         assert "Listing packages" in result.stdout
         assert "Not implemented yet" in result.stdout
 
-    def test_with_detailed_flag(self):
-        """Test list command accepts --detailed flag."""
-        result = runner.invoke(app, ["analyse", "list", "--detailed"])
-        assert result.exit_code == 0
-
-    def test_with_json_flag(self):
-        """Test list command accepts --json flag."""
-        result = runner.invoke(app, ["analyse", "list", "--json"])
+    @pytest.mark.parametrize(
+        "flag",
+        ["--detailed", "--json"],
+        ids=["detailed", "json"],
+    )
+    def test_list_with_flags(self, flag):
+        """Test list command accepts output format flags."""
+        result = runner.invoke(app, ["analyse", "list", flag])
         assert result.exit_code == 0
 
 
@@ -180,14 +156,17 @@ class TestGetCommand:
         assert "Showing details for: test-package" in result.stdout
         assert "Not implemented yet" in result.stdout
 
-    def test_with_depth_option(self):
-        """Test get command with --depth option."""
-        result = runner.invoke(app, ["analyse", "get", "test-package", "--depth", "5"])
-        assert result.exit_code == 0
-
-    def test_with_stats_only_flag(self):
-        """Test get command with --stats-only flag."""
-        result = runner.invoke(app, ["analyse", "get", "test-package", "--stats-only"])
+    @pytest.mark.parametrize(
+        "option_args",
+        [
+            ["--depth", "5"],
+            ["--stats-only"],
+        ],
+        ids=["depth", "stats-only"],
+    )
+    def test_get_with_options(self, option_args):
+        """Test get command accepts various options."""
+        result = runner.invoke(app, ["analyse", "get", "test-package"] + option_args)
         assert result.exit_code == 0
 
     def test_missing_package(self):
@@ -209,16 +188,20 @@ class TestExportCommand:
         assert "Format: json" in result.stdout
         assert "Not implemented yet" in result.stdout
 
-    def test_with_format_option(self):
-        """Test export command with --format option."""
-        result = runner.invoke(app, ["analyse", "export", "test-package", "--format", "cypher"])
+    @pytest.mark.parametrize(
+        "option_args,expected_in_output",
+        [
+            (["--format", "cypher"], "Format: cypher"),
+            (["--output", "out.json"], None),
+        ],
+        ids=["format", "output"],
+    )
+    def test_export_with_options(self, option_args, expected_in_output):
+        """Test export command accepts various options."""
+        result = runner.invoke(app, ["analyse", "export", "test-package"] + option_args)
         assert result.exit_code == 0
-        assert "Format: cypher" in result.stdout
-
-    def test_with_output_option(self):
-        """Test export command accepts --output option."""
-        result = runner.invoke(app, ["analyse", "export", "test-package", "--output", "out.json"])
-        assert result.exit_code == 0
+        if expected_in_output:
+            assert expected_in_output in result.stdout
 
     def test_missing_package(self):
         """Test export command fails without package name."""
@@ -238,16 +221,20 @@ class TestDeleteCommand:
         assert "Deleting: test-package" in result.stdout
         assert "Not implemented yet" in result.stdout
 
-    def test_with_force_flag(self):
-        """Test delete command accepts --force flag."""
-        result = runner.invoke(app, ["analyse", "delete", "test-package", "--force"])
+    @pytest.mark.parametrize(
+        "flag,expected_in_output",
+        [
+            ("--force", None),
+            ("--dry-run", "Mode: Dry run"),
+        ],
+        ids=["force", "dry-run"],
+    )
+    def test_delete_with_flags(self, flag, expected_in_output):
+        """Test delete command accepts various flags."""
+        result = runner.invoke(app, ["analyse", "delete", "test-package", flag])
         assert result.exit_code == 0
-
-    def test_with_dry_run_flag(self):
-        """Test delete command with --dry-run flag."""
-        result = runner.invoke(app, ["analyse", "delete", "test-package", "--dry-run"])
-        assert result.exit_code == 0
-        assert "Mode: Dry run" in result.stdout
+        if expected_in_output:
+            assert expected_in_output in result.stdout
 
     def test_missing_package(self):
         """Test delete command fails without package name."""

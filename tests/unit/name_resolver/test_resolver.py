@@ -1,5 +1,7 @@
 """Tests for name resolver."""
 
+import pytest
+
 from mapper import name_resolver
 from mapper.ast_parser import models
 
@@ -7,50 +9,96 @@ from mapper.ast_parser import models
 class TestNameResolver:
     """Tests for NameResolver class."""
 
-    def test_resolve_simple_import(self):
-        """Test resolving names from 'import X' pattern."""
-        imports = [models.ImportInfo(module="pandas", names=["pandas"])]
+    @pytest.mark.parametrize(
+        "imports,name_to_resolve,expected_result,test_id",
+        [
+            # import X pattern
+            (
+                [models.ImportInfo(module="pandas", names=["pandas"])],
+                "pandas",
+                "pandas",
+                "simple-import",
+            ),
+            # import X as Y pattern
+            (
+                [models.ImportInfo(module="pandas", names=["pandas"], alias="pd")],
+                "pd",
+                "pandas",
+                "import-with-alias",
+            ),
+            # from X import Y pattern
+            (
+                [models.ImportInfo(module="typing", names=["Optional"])],
+                "Optional",
+                "typing.Optional",
+                "from-import",
+            ),
+            # from X import Y as Z pattern
+            (
+                [models.ImportInfo(module="typing", names=["Optional"], aliases={"Optional": "Opt"})],
+                "Opt",
+                "typing.Optional",
+                "from-import-with-alias",
+            ),
+            # Attribute access (pd.DataFrame)
+            (
+                [models.ImportInfo(module="pandas", names=["pandas"], alias="pd")],
+                "pd.DataFrame",
+                "pandas.DataFrame",
+                "attribute-access",
+            ),
+            # Nested attribute access (attrs.define)
+            (
+                [models.ImportInfo(module="attrs", names=["attrs"])],
+                "attrs.define",
+                "attrs.define",
+                "nested-attribute",
+            ),
+            # Multi-part module (os.path) - resolve os
+            (
+                [models.ImportInfo(module="os.path", names=["os.path"])],
+                "os",
+                "os",
+                "multi-part-module-base",
+            ),
+            # Multi-part module (os.path) - resolve os.path
+            (
+                [models.ImportInfo(module="os.path", names=["os.path"])],
+                "os.path",
+                "os.path",
+                "multi-part-module-full",
+            ),
+        ],
+        ids=lambda x: x if isinstance(x, str) and "-" in x else "",
+    )
+    def test_basic_resolution_patterns(self, imports, name_to_resolve, expected_result, test_id):
+        """Test resolving names from different import patterns."""
         resolver = name_resolver.NameResolver(imports, "test_module")
+        resolved = resolver.resolve(name_to_resolve)
+        assert resolved == expected_result
 
-        # pandas -> pandas
-        resolved = resolver.resolve("pandas")
-        assert resolved == "pandas"
-
-    def test_resolve_import_with_alias(self):
-        """Test resolving names from 'import X as Y' pattern."""
-        imports = [models.ImportInfo(module="pandas", names=["pandas"], alias="pd")]
+    @pytest.mark.parametrize(
+        "imports,name_to_resolve,test_id",
+        [
+            # Imported as alias, original name should not resolve
+            (
+                [models.ImportInfo(module="pandas", names=["pandas"], alias="pd")],
+                "pandas",
+                "aliased-original-name",
+            ),
+            # From import with alias, original should not resolve
+            (
+                [models.ImportInfo(module="typing", names=["Optional"], aliases={"Optional": "Opt"})],
+                "Optional",
+                "from-aliased-original",
+            ),
+        ],
+        ids=lambda x: x if isinstance(x, str) and "-" in x else "",
+    )
+    def test_aliased_imports_original_name_unresolved(self, imports, name_to_resolve, test_id):
+        """Test that original names don't resolve when imported with aliases."""
         resolver = name_resolver.NameResolver(imports, "test_module")
-
-        # pd -> pandas
-        resolved = resolver.resolve("pd")
-        assert resolved == "pandas"
-
-        # pandas should not resolve (we imported as pd)
-        resolved = resolver.resolve("pandas")
-        assert isinstance(resolved, name_resolver.UnresolvedName)
-
-    def test_resolve_from_import(self):
-        """Test resolving names from 'from X import Y' pattern."""
-        imports = [models.ImportInfo(module="typing", names=["Optional"])]
-        resolver = name_resolver.NameResolver(imports, "test_module")
-
-        # Optional -> typing.Optional
-        resolved = resolver.resolve("Optional")
-        assert resolved == "typing.Optional"
-
-    def test_resolve_from_import_with_alias(self):
-        """Test resolving names from 'from X import Y as Z' pattern."""
-        imports = [
-            models.ImportInfo(module="typing", names=["Optional"], aliases={"Optional": "Opt"})
-        ]
-        resolver = name_resolver.NameResolver(imports, "test_module")
-
-        # Opt -> typing.Optional
-        resolved = resolver.resolve("Opt")
-        assert resolved == "typing.Optional"
-
-        # Optional should not resolve (we imported as Opt)
-        resolved = resolver.resolve("Optional")
+        resolved = resolver.resolve(name_to_resolve)
         assert isinstance(resolved, name_resolver.UnresolvedName)
 
     def test_resolve_from_import_multiple(self):
@@ -62,57 +110,42 @@ class TestNameResolver:
         assert resolver.resolve("Any") == "typing.Any"
         assert resolver.resolve("List") == "typing.List"
 
-    def test_resolve_attribute_access(self):
-        """Test resolving attribute access like 'pd.DataFrame'."""
-        imports = [models.ImportInfo(module="pandas", names=["pandas"], alias="pd")]
+    @pytest.mark.parametrize(
+        "imports,name_to_resolve,context,expected_original,expected_reason_contains,test_id",
+        [
+            # Name not in imports
+            (
+                [models.ImportInfo(module="pandas", names=["pandas"])],
+                "numpy",
+                "test_func",
+                "numpy",
+                "not found in imports",
+                "not-imported",
+            ),
+            # Attribute with unknown prefix
+            (
+                [models.ImportInfo(module="pandas", names=["pandas"], alias="pd")],
+                "np.array",
+                None,
+                "np.array",
+                "prefix 'np' not in imports",
+                "unknown-prefix",
+            ),
+        ],
+        ids=lambda x: x if isinstance(x, str) and "-" in x else "",
+    )
+    def test_unresolved_names(
+        self, imports, name_to_resolve, context, expected_original, expected_reason_contains, test_id
+    ):
+        """Test that unresolved names return UnresolvedName with correct metadata."""
         resolver = name_resolver.NameResolver(imports, "test_module")
+        resolved = resolver.resolve(name_to_resolve, context=context)
 
-        # pd.DataFrame -> pandas.DataFrame
-        resolved = resolver.resolve("pd.DataFrame")
-        assert resolved == "pandas.DataFrame"
-
-    def test_resolve_nested_attribute_access(self):
-        """Test resolving nested attribute access like 'attrs.define'."""
-        imports = [models.ImportInfo(module="attrs", names=["attrs"])]
-        resolver = name_resolver.NameResolver(imports, "test_module")
-
-        # attrs.define -> attrs.define
-        resolved = resolver.resolve("attrs.define")
-        assert resolved == "attrs.define"
-
-    def test_resolve_multi_part_module_import(self):
-        """Test resolving multi-part module imports like 'import os.path'."""
-        imports = [models.ImportInfo(module="os.path", names=["os.path"])]
-        resolver = name_resolver.NameResolver(imports, "test_module")
-
-        # os should map to os (top-level)
-        resolved = resolver.resolve("os")
-        assert resolved == "os"
-
-        # os.path should map to os.path
-        resolved = resolver.resolve("os.path")
-        assert resolved == "os.path"
-
-    def test_unresolved_name_not_imported(self):
-        """Test that unimported names return UnresolvedName."""
-        imports = [models.ImportInfo(module="pandas", names=["pandas"])]
-        resolver = name_resolver.NameResolver(imports, "test_module")
-
-        resolved = resolver.resolve("numpy", context="test_func")
         assert isinstance(resolved, name_resolver.UnresolvedName)
-        assert resolved.original_name == "numpy"
-        assert resolved.context == "test_func"
-        assert "not found in imports" in resolved.reason
-
-    def test_unresolved_name_attribute_prefix_unknown(self):
-        """Test that attribute access with unknown prefix returns UnresolvedName."""
-        imports = [models.ImportInfo(module="pandas", names=["pandas"], alias="pd")]
-        resolver = name_resolver.NameResolver(imports, "test_module")
-
-        resolved = resolver.resolve("np.array")
-        assert isinstance(resolved, name_resolver.UnresolvedName)
-        assert resolved.original_name == "np.array"
-        assert "prefix 'np' not in imports" in resolved.reason
+        assert resolved.original_name == expected_original
+        if context:
+            assert resolved.context == context
+        assert expected_reason_contains in resolved.reason
 
     def test_resolve_mixed_imports(self):
         """Test resolving with mixed import patterns."""
