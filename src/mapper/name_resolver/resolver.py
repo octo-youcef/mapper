@@ -129,6 +129,15 @@ class NameResolver:
                 else:
                     dec_info["name"] = resolved  # Update with resolved FQN
 
+            # Resolve function call names
+            for call in func.calls:
+                resolved = self.resolve(call.full_name, context=func_fqn)
+                if isinstance(resolved, models.UnresolvedName):
+                    unresolved.append(resolved)
+                else:
+                    # Update full_name with resolved FQN
+                    object.__setattr__(call, "full_name", resolved)
+
         # Resolve base classes and method decorators in classes
         for class_info in result.classes:
             class_fqn = f"{result.module.name}.{class_info.name}"
@@ -152,5 +161,14 @@ class NameResolver:
                         unresolved.append(resolved)
                     else:
                         dec_info["name"] = resolved
+
+                # Resolve method call names
+                for call in method.calls:
+                    resolved = self.resolve(call.full_name, context=method_fqn)
+                    if isinstance(resolved, models.UnresolvedName):
+                        unresolved.append(resolved)
+                    else:
+                        # Update full_name with resolved FQN
+                        object.__setattr__(call, "full_name", resolved)
 
         return result, unresolved

@@ -270,6 +270,72 @@ class TestNameResolverWithExtractionResult:
         assert resolved_result.classes[0].methods[0].decorators[0]["name"] == "builtins.property"
         assert len(unresolved) == 0
 
+    def test_resolve_function_call_names(self):
+        """Test resolving call names in functions."""
+        imports = [models.ImportInfo(module="pandas", names=["pandas"], alias="pd")]
+
+        func = models.FunctionInfo(
+            name="process",
+            is_public=True,
+            calls=[
+                models.CallInfo(
+                    name="DataFrame",
+                    call_type=models.CallType.ATTRIBUTE,
+                    full_name="pd.DataFrame",
+                    qualifier="pd",
+                )
+            ],
+        )
+
+        result = models.ExtractionResult(
+            module=models.ModuleInfo(path="test.py", name="test"),
+            imports=imports,
+            functions=[func],
+        )
+
+        resolver = name_resolver.NameResolver(imports, "test")
+        resolved_result, unresolved = resolver.resolve_extraction_result(result)
+
+        # Call name should be resolved
+        assert resolved_result.functions[0].calls[0].full_name == "pandas.DataFrame"
+        assert len(unresolved) == 0
+
+    def test_resolve_method_call_names(self):
+        """Test resolving call names in methods."""
+        imports = [models.ImportInfo(module="typing", names=["List"])]
+
+        method = models.FunctionInfo(
+            name="get_items",
+            is_public=True,
+            calls=[
+                models.CallInfo(
+                    name="List",
+                    call_type=models.CallType.SIMPLE,
+                    full_name="List",
+                    qualifier=None,
+                )
+            ],
+        )
+
+        cls = models.ClassInfo(
+            name="Container",
+            is_public=True,
+            methods=[method],
+        )
+
+        result = models.ExtractionResult(
+            module=models.ModuleInfo(path="test.py", name="test"),
+            imports=imports,
+            classes=[cls],
+        )
+
+        resolver = name_resolver.NameResolver(imports, "test")
+        resolved_result, unresolved = resolver.resolve_extraction_result(result)
+
+        # Method call should be resolved
+        assert resolved_result.classes[0].methods[0].calls[0].full_name == "typing.List"
+        assert len(unresolved) == 0
+
     def test_collect_unresolved_names(self):
         """Test that unresolved names are collected."""
         imports = []  # No imports
@@ -278,6 +344,14 @@ class TestNameResolverWithExtractionResult:
             name="process",
             is_public=True,
             decorators=[{"name": "unknown_decorator", "args": []}],
+            calls=[
+                models.CallInfo(
+                    name="unknown_func",
+                    call_type=models.CallType.SIMPLE,
+                    full_name="unknown_func",
+                    qualifier=None,
+                )
+            ],
         )
 
         cls = models.ClassInfo(
@@ -296,8 +370,9 @@ class TestNameResolverWithExtractionResult:
         resolver = name_resolver.NameResolver(imports, "test")
         resolved_result, unresolved = resolver.resolve_extraction_result(result)
 
-        # Should have 2 unresolved names
-        assert len(unresolved) == 2
+        # Should have 3 unresolved names (decorator, call, base class)
+        assert len(unresolved) == 3
         unresolved_names = [u.original_name for u in unresolved]
         assert "unknown_decorator" in unresolved_names
+        assert "unknown_func" in unresolved_names
         assert "UnknownBase" in unresolved_names
