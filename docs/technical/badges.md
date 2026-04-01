@@ -35,7 +35,7 @@ Mapper uses a combination of static and dynamic badges at the top of the README:
 ### 2. Tests Badge (Dynamic, Auto-Updated by CI)
 - **Type**: Dynamic badge using shields.io endpoint + GitHub Gist
 - **Update Method**: Automatically updated by CI on push to main
-- **Gist URL**: https://gist.github.com/octo-youcef/3424657d04826a3196811985d2f13687
+- **Gist URL**: https://gist.github.com/octo-youcef/9501806ed5eac873dd324bc606c6dd79
 - **Gist File**: `mapper-tests.json`
 - **Color**: Always green ("success")
 
@@ -58,13 +58,13 @@ Mapper uses a combination of static and dynamic badges at the top of the README:
 **Manual update (if needed):**
 ```bash
 # Update the gist file manually at:
-# https://gist.github.com/octo-youcef/3424657d04826a3196811985d2f13687
+# https://gist.github.com/octo-youcef/9501806ed5eac873dd324bc606c6dd79
 
 # Or via API:
 curl -X PATCH \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Accept: application/vnd.github+json" \
-  "https://api.github.com/gists/3424657d04826a3196811985d2f13687" \
+  "https://api.github.com/gists/9501806ed5eac873dd324bc606c6dd79" \
   -d '{
     "files": {
       "mapper-tests.json": {
@@ -77,7 +77,7 @@ curl -X PATCH \
 ### 3. Coverage Badge (Dynamic, Auto-Updated by CI)
 - **Type**: Dynamic badge using shields.io endpoint + GitHub Gist
 - **Update Method**: Automatically updated by CI on push to main
-- **Gist URL**: https://gist.github.com/octo-youcef/3424657d04826a3196811985d2f13687
+- **Gist URL**: https://gist.github.com/octo-youcef/9501806ed5eac873dd324bc606c6dd79
 - **Gist File**: `mapper-coverage.json`
 - **Color**: Dynamic based on coverage percentage
 
@@ -162,7 +162,7 @@ The `.github/workflows/update-coverage-badge.yml` workflow handles automatic bad
    - Regenerate if needed: https://github.com/settings/tokens
 
 4. **Gist ID changed** - Verify gist ID in workflow matches actual gist
-   - Gist: https://gist.github.com/octo-youcef/3424657d04826a3196811985d2f13687
+   - Gist: https://gist.github.com/octo-youcef/9501806ed5eac873dd324bc606c6dd79
    - Workflow: `.github/workflows/update-coverage-badge.yml` line 58
 
 ### CI workflow failing
@@ -233,7 +233,7 @@ To add a new dynamic badge:
    EOF
 
    # Add to gist
-   gh api -X PATCH /gists/3424657d04826a3196811985d2f13687 \
+   gh api -X PATCH /gists/9501806ed5eac873dd324bc606c6dd79 \
      -f files[mapper-new-badge.json][content]=@new-badge.json
    ```
 
@@ -241,7 +241,7 @@ To add a new dynamic badge:
 
 3. **Add badge to README:**
    ```markdown
-   ![New Badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/octo-youcef/3424657d04826a3196811985d2f13687/raw/mapper-new-badge.json)
+   ![New Badge](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/octo-youcef/9501806ed5eac873dd324bc606c6dd79/raw/mapper-new-badge.json)
    ```
 
 ## Related Documentation
