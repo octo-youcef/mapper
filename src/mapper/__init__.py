@@ -17,7 +17,7 @@ from mapper.graph import Neo4jConnection
 from mapper.graph_loader import GraphLoader
 from mapper.name_resolver import NameResolver, UnresolvedName
 
-__version__ = "0.6.6"
+__version__ = "0.6.7"
 
 __all__ = [
     # Version

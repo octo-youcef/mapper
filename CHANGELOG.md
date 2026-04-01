@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.7] - 2026-04-01
+
+### Added
+- **Comprehensive integration tests** - Real Neo4j integration test coverage for recent features
+  - 51 integration tests across 9 test files
+  - `test_import_tracking.py` - All import patterns end-to-end (simple, alias, from, submodule, multiple)
+  - `test_cross_module.py` - Module dependency tracking (DEPENDS_ON relationships, deduplication, chains)
+  - `test_name_resolution.py` - FQN resolution creating correct relationships (CALLS, INHERITS across modules)
+  - `test_inheritance.py` - Class inheritance tracking (single, chain, cross-module, multiple, diamond)
+  - `test_reload_workflow.py` - Clear and re-analyze workflows (code changes, relationship updates, multi-file)
+  - `test_external_modules.py` - External vs internal module distinction (is_external flag, stdlib, mixed dependencies)
+  - `test_diagnostic.py` - Diagnostic smoke tests for low-level validation (direct node creation, file scanner, basic analysis)
+  - `test_graph_storage.py` - Edge case tests (loader=None, error handling)
+  - `test_init_workflow.py` - Interactive init workflow tests (existing)
+  - Sample Python projects in `tests/fixtures/sample_projects/` for realistic test scenarios
+  - Neo4j connection fixture with fail-fast behavior (explicit errors, not silent skips)
+  - Tests validate full stack: Python file → AST → name resolution → Neo4j graph
+
+### Fixed
+- **Critical: Enum interpolation in Cypher queries** - Enums now use `.value` property in f-strings
+  - Bug was causing `Invalid input '.': expected a parameter` errors in all graph operations
+  - Affected `create_node()` and `create_relationship()` in `src/mapper/graph.py`
+- **Cross-module relationship resolution** - Package prefix stripping for FQN matching
+  - Bug prevented INHERITS and CALLS relationships across modules
+  - Now correctly matches `cross_mod.base.Vehicle` to stored `base.Vehicle`
+- **Self method resolution** - Intra-class method calls now create CALLS relationships
+  - Bug: `self.method_name` not matching stored FQNs
+  - Fix: Extract class FQN and resolve to full method FQN
+- **External module deduplication** - Query database before creating external modules
+  - Prevents duplicate external module nodes across test runs
+  - Added `_find_existing_external_module()` helper method
+
+### Changed
+- Added `exclude` pattern to mypy config to ignore sample project fixtures
+- Integration tests use real Neo4j (not mocked) for true integration validation
+- Integration tests fail fast with clear error messages (not skip) when Neo4j unavailable
+- All 120 unit tests passing, 51 integration tests (total: 171 tests)
+- Coverage maintained at 82%
+
 ## [0.6.6] - 2026-04-01
 
 ### Added
