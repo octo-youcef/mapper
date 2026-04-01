@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.8] - 2026-04-02
+
 ### Changed
 - **CLAUDE.md comprehensive standards update** - Aligned project documentation with personal standards
   - Added Docker Configuration section (multi-stage builds, environment variables, volumes, justfile integration)
