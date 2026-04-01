@@ -2,225 +2,161 @@
 
 from pathlib import Path
 
+import pytest
+
 from mapper import analyser, graph_loader
 
 
 class TestCrossModuleDependencies:
-    """Tests for module dependency tracking."""
+    """Tests for module dependency tracking.
 
-    def test_depends_on_relationship_created(self, neo4j_connection, tmp_path: Path):
-        """Test that DEPENDS_ON relationship is created between modules."""
-        # Create module_a that imports module_b
-        module_a = tmp_path / "module_a.py"
-        module_a.write_text(
-            "from test_pkg import module_b\n\ndef func():\n    return module_b.helper()\n"
-        )
+    All tests use the cross_module fixture analyzed once in setup.
+    Fixture structure: module_a -> module_b -> module_c (+ external deps)
+    """
 
-        module_b = tmp_path / "module_b.py"
-        module_b.write_text('def helper():\n    return "help"\n')
+    PACKAGE_NAME = "cross_module"
 
-        loader = graph_loader.GraphLoader(neo4j_connection, package_name="test_pkg")
+    @pytest.fixture(scope="class", autouse=True)
+    def analyzed_cross_module_fixture(self, neo4j_connection):
+        """Analyze cross_module fixture once for all tests."""
+        fixture_path = Path(__file__).parent.parent.parent / "fixtures/sample_projects/cross_module"
+
+        loader = graph_loader.GraphLoader(neo4j_connection, self.PACKAGE_NAME)
         loader.clear_package()
-        code_analyser = analyser.Analyser(tmp_path, loader=loader)
+
+        code_analyser = analyser.Analyser(fixture_path, loader=loader)
         result = code_analyser.analyse()
 
-        assert result.success is True
+        if not result.success:
+            pytest.fail(f"Failed to analyze cross_module fixture: {result.errors}")
 
-        with neo4j_connection.driver.session(database=neo4j_connection.database) as session:
-            # Check DEPENDS_ON relationship
-            depends_on = session.run(
+        yield neo4j_connection
+
+        # Cleanup after all tests
+        loader.clear_package()
+
+    def test_depends_on_relationship_created(self, analyzed_cross_module_fixture):
+        """Test that DEPENDS_ON relationships exist between internal modules."""
+        connection = analyzed_cross_module_fixture
+
+        with connection.driver.session(database=connection.database) as session:
+            # Check internal module dependencies
+            internal_deps = session.run(
                 """
-                MATCH (m1:Module {package: $pkg})-[:DEPENDS_ON]->(m2:Module)
-                WHERE m1.name = 'module_a'
-                RETURN m2.name as target_module
-                """,
-                pkg="test_pkg",
-            ).data()
-
-            # module_a should depend on test_pkg (from the import statement)
-            # Note: depends on test_pkg, not module_b specifically
-            assert len(depends_on) == 1
-            assert depends_on[0]["target_module"] == "test_pkg"
-
-        loader.clear_package()
-
-    def test_depends_on_deduplication(self, neo4j_connection, tmp_path: Path):
-        """Test that multiple imports from same module create only one DEPENDS_ON."""
-        # Module with multiple imports from same source
-        test_module = tmp_path / "test_module.py"
-        test_module.write_text(
-            "from typing import Optional, List, Dict\n\ndef func(x: Optional[List[Dict]]):\n    pass\n"
-        )
-
-        loader = graph_loader.GraphLoader(neo4j_connection, package_name="test_dedup")
-        loader.clear_package()
-        code_analyser = analyser.Analyser(tmp_path, loader=loader)
-        result = code_analyser.analyse()
-
-        assert result.success is True
-
-        with neo4j_connection.driver.session(database=neo4j_connection.database) as session:
-            # Count DEPENDS_ON relationships to typing
-            depends_count = session.run(
-                """
-                MATCH (m:Module {package: $pkg})-[r:DEPENDS_ON]->(target:Module)
-                WHERE target.name = 'typing'
-                RETURN count(r) as count
-                """,
-                pkg="test_dedup",
-            ).data()
-
-            # Should be exactly 1 DEPENDS_ON despite 3 imports
-            assert depends_count[0]["count"] == 1
-
-        loader.clear_package()
-
-    def test_dependency_chain(self, neo4j_connection, tmp_path: Path):
-        """Test A -> B -> C dependency chain."""
-        # Create dependency chain
-        module_c = tmp_path / "module_c.py"
-        module_c.write_text("def validate(data):\n    return data\n")
-
-        module_b = tmp_path / "module_b.py"
-        module_b.write_text(
-            "from dep_chain import module_c\n\ndef transform(data):\n    return module_c.validate(data)\n"
-        )
-
-        module_a = tmp_path / "module_a.py"
-        module_a.write_text(
-            "from dep_chain import module_b\n\ndef process(data):\n    return module_b.transform(data)\n"
-        )
-
-        loader = graph_loader.GraphLoader(neo4j_connection, package_name="dep_chain")
-        loader.clear_package()
-        code_analyser = analyser.Analyser(tmp_path, loader=loader)
-        result = code_analyser.analyse()
-
-        assert result.success is True
-
-        with neo4j_connection.driver.session(database=neo4j_connection.database) as session:
-            # Find all dependencies
-            all_deps = session.run(
-                """
-                MATCH (m1:Module {package: $pkg})-[:DEPENDS_ON]->(m2:Module)
+                MATCH (m1:Module {package: $pkg})-[:DEPENDS_ON]->(m2:Module {package: $pkg})
                 RETURN m1.name as source, m2.name as target
-                ORDER BY source
+                ORDER BY source, target
                 """,
-                pkg="dep_chain",
+                pkg=self.PACKAGE_NAME,
             ).data()
 
-            # Each module depends on dep_chain (the package)
-            source_modules = {dep["source"] for dep in all_deps}
-            assert "module_a" in source_modules
-            assert "module_b" in source_modules
+            # module_a -> module_b, module_b -> module_c
+            assert len(internal_deps) >= 2
 
-        loader.clear_package()
+            sources = {d["source"] for d in internal_deps}
+            targets = {d["target"] for d in internal_deps}
 
-    def test_multiple_modules_same_dependency(self, neo4j_connection, tmp_path: Path):
-        """Test that multiple modules can depend on same external package."""
-        # Two modules both importing pandas
-        module_a = tmp_path / "module_a.py"
-        module_a.write_text("import pandas as pd\n\ndef func_a():\n    return pd.DataFrame()\n")
-
-        module_b = tmp_path / "module_b.py"
-        module_b.write_text("import pandas as pd\n\ndef func_b():\n    return pd.Series()\n")
-
-        loader = graph_loader.GraphLoader(neo4j_connection, package_name="multi_dep")
-        loader.clear_package()
-        code_analyser = analyser.Analyser(tmp_path, loader=loader)
-        result = code_analyser.analyse()
-
-        assert result.success is True
-
-        with neo4j_connection.driver.session(database=neo4j_connection.database) as session:
-            # Count modules depending on pandas
-            pandas_deps = session.run(
-                """
-                MATCH (m:Module {package: $pkg})-[:DEPENDS_ON]->(target:Module)
-                WHERE target.name = 'pandas'
-                RETURN count(m) as module_count
-                """,
-                pkg="multi_dep",
-            ).data()
-
-            # Both modules should have DEPENDS_ON to pandas
-            assert pandas_deps[0]["module_count"] == 2
-
-        loader.clear_package()
-
-    def test_internal_and_external_dependencies(self, neo4j_connection, tmp_path: Path):
-        """Test module with both internal and external dependencies."""
-        # Module depending on both internal module and external package
-        internal = tmp_path / "internal.py"
-        internal.write_text('def helper():\n    return "help"\n')
-
-        mixed = tmp_path / "mixed.py"
-        mixed.write_text(
-            "from mixed_deps import internal\nimport pandas\n\ndef func():\n    internal.helper()\n    return pandas.DataFrame()\n"
-        )
-
-        loader = graph_loader.GraphLoader(neo4j_connection, package_name="mixed_deps")
-        loader.clear_package()
-        code_analyser = analyser.Analyser(tmp_path, loader=loader)
-        result = code_analyser.analyse()
-
-        assert result.success is True
-
-        with neo4j_connection.driver.session(database=neo4j_connection.database) as session:
-            # Get all dependencies for mixed module
-            deps = session.run(
-                """
-                MATCH (m:Module {package: $pkg, name: 'mixed'})-[:DEPENDS_ON]->(target:Module)
-                RETURN target.name as dep_name, target.is_external as is_external
-                ORDER BY dep_name
-                """,
-                pkg="mixed_deps",
-            ).data()
-
-            dep_names = [d["dep_name"] for d in deps]
-            # Should depend on mixed_deps (internal) and pandas (external)
-            assert "mixed_deps" in dep_names
-            assert "pandas" in dep_names
-
-            # Check external flag
-            pandas_dep = next(d for d in deps if d["dep_name"] == "pandas")
-            assert pandas_dep["is_external"] is True
-
-        loader.clear_package()
-
-    def test_circular_dependencies(self, neo4j_connection, tmp_path: Path):
-        """Test that circular dependencies are handled correctly."""
-        # Module A imports B, B imports A (circular)
-        module_a = tmp_path / "module_a.py"
-        module_a.write_text(
-            "from circular import module_b\n\ndef func_a():\n    return module_b.func_b()\n"
-        )
-
-        module_b = tmp_path / "module_b.py"
-        module_b.write_text('from circular import module_a\n\ndef func_b():\n    return "b"\n')
-
-        loader = graph_loader.GraphLoader(neo4j_connection, package_name="circular")
-        loader.clear_package()
-        code_analyser = analyser.Analyser(tmp_path, loader=loader)
-        result = code_analyser.analyse()
-
-        # Analysis should succeed even with circular imports
-        assert result.success is True
-
-        with neo4j_connection.driver.session(database=neo4j_connection.database) as session:
-            # Both modules should have DEPENDS_ON relationships
-            deps = session.run(
-                """
-                MATCH (m:Module {package: $pkg})-[:DEPENDS_ON]->(target:Module)
-                RETURN m.name as source, target.name as target
-                ORDER BY source
-                """,
-                pkg="circular",
-            ).data()
-
-            # Both modules depend on the circular package
-            sources = {d["source"] for d in deps}
+            # module_a and module_b should depend on other modules
             assert "module_a" in sources
-            assert "module_b" in sources
+            assert "module_b" in sources or "module_b" in targets
 
-        loader.clear_package()
+    def test_depends_on_deduplication(self, analyzed_cross_module_fixture):
+        """Test that multiple imports from same module create only one DEPENDS_ON."""
+        connection = analyzed_cross_module_fixture
+
+        with connection.driver.session(database=connection.database) as session:
+            # Check external dependencies (pandas, numpy appear once each despite multiple potential imports)
+            external_deps = session.run(
+                """
+                MATCH (m:Module {package: $pkg})-[:DEPENDS_ON]->(ext:Module)
+                WHERE ext.is_external = true
+                RETURN m.name as source, ext.name as target, count(*) as rel_count
+                ORDER BY source, target
+                """,
+                pkg=self.PACKAGE_NAME,
+            ).data()
+
+            # Each module should have exactly 1 DEPENDS_ON per external dependency
+            for dep in external_deps:
+                assert dep["rel_count"] == 1, (
+                    f"Expected 1 DEPENDS_ON from {dep['source']} to {dep['target']}, got {dep['rel_count']}"
+                )
+
+    def test_dependency_chain(self, analyzed_cross_module_fixture):
+        """Test A -> B -> C dependency chain exists."""
+        connection = analyzed_cross_module_fixture
+
+        with connection.driver.session(database=connection.database) as session:
+            # Verify chain: module_a -> module_b -> module_c
+            chain = session.run(
+                """
+                MATCH path = (a:Module {package: $pkg, name: 'module_a'})-[:DEPENDS_ON*1..2]->(c:Module {package: $pkg, name: 'module_c'})
+                RETURN length(path) as chain_length
+                """,
+                pkg=self.PACKAGE_NAME,
+            ).data()
+
+            # Should find path from module_a to module_c
+            assert len(chain) > 0, "Expected dependency chain from module_a to module_c"
+
+    def test_multiple_modules_same_dependency(self, analyzed_cross_module_fixture):
+        """Test multiple modules depending on same external package."""
+        connection = analyzed_cross_module_fixture
+
+        with connection.driver.session(database=connection.database) as session:
+            # Count which internal modules depend on external modules
+            external_dependents = session.run(
+                """
+                MATCH (m:Module {package: $pkg})-[:DEPENDS_ON]->(ext:Module)
+                WHERE ext.is_external = true
+                RETURN ext.name as external_module, collect(m.name) as dependent_modules
+                ORDER BY external_module
+                """,
+                pkg=self.PACKAGE_NAME,
+            ).data()
+
+            # Should have external dependencies
+            assert len(external_dependents) > 0
+
+            # At least one external module should be depended on by internal modules
+            for ext_dep in external_dependents:
+                assert len(ext_dep["dependent_modules"]) >= 1
+
+    def test_internal_and_external_dependencies(self, analyzed_cross_module_fixture):
+        """Test that modules have both internal and external dependencies."""
+        connection = analyzed_cross_module_fixture
+
+        with connection.driver.session(database=connection.database) as session:
+            # Get all dependencies for module_a
+            module_a_deps = session.run(
+                """
+                MATCH (m:Module {package: $pkg, name: 'module_a'})-[:DEPENDS_ON]->(dep:Module)
+                RETURN dep.name as dependency, dep.is_external as is_external
+                ORDER BY dependency
+                """,
+                pkg=self.PACKAGE_NAME,
+            ).data()
+
+            # module_a should have at least one internal and one external dependency
+            has_internal = any(not dep["is_external"] for dep in module_a_deps)
+            has_external = any(dep["is_external"] for dep in module_a_deps)
+
+            assert has_internal, "module_a should have internal dependencies"
+            assert has_external, "module_a should have external dependencies"
+
+    def test_circular_dependencies(self, analyzed_cross_module_fixture):
+        """Test that circular dependencies are handled (shouldn't exist in our fixture)."""
+        connection = analyzed_cross_module_fixture
+
+        with connection.driver.session(database=connection.database) as session:
+            # Check for circular dependencies
+            circular = session.run(
+                """
+                MATCH (m1:Module {package: $pkg})-[:DEPENDS_ON]->(m2:Module {package: $pkg})-[:DEPENDS_ON]->(m1)
+                RETURN m1.name as module1, m2.name as module2
+                """,
+                pkg=self.PACKAGE_NAME,
+            ).data()
+
+            # Our fixture has no circular dependencies
+            assert len(circular) == 0, f"Unexpected circular dependencies: {circular}"

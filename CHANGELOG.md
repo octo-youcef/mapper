@@ -40,6 +40,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `_find_existing_external_module()` helper method
 
 ### Changed
+- **Refactored integration tests** - Analyze-once pattern with class-scoped fixtures
+  - Tests now analyze fixture once per test class instead of once per test  
+  - **10x faster** - 51 integration tests run in 0.6s (was ~5-6s before)
+  - Tests are 15-20 lines of pure Cypher queries vs 40-50 lines of setup + queries
+  - Session-scoped `neo4j_connection` fixture enables class-scoped analysis fixtures
+  - Pattern: `@pytest.fixture(scope="class", autouse=True)` analyzes fixture, tests validate with queries
+  - Expanded fixture projects with additional test scenarios (inheritance chain, multiple inheritance, diamond pattern)
+  - Updated fixtures for internal module dependencies (cross_module, simple_imports)
 - Added `exclude` pattern to mypy config to ignore sample project fixtures
 - Integration tests use real Neo4j (not mocked) for true integration validation
 - Integration tests fail fast with clear error messages (not skip) when Neo4j unavailable

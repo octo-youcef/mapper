@@ -2,103 +2,82 @@
 
 from pathlib import Path
 
+import pytest
+
 from mapper import analyser, graph_loader
 
 
 class TestInheritance:
-    """Tests for class inheritance tracking."""
+    """Tests for class inheritance tracking.
 
-    def test_single_inheritance(self, neo4j_connection, tmp_path: Path):
-        """Test simple single inheritance relationship."""
-        test_module = tmp_path / "test_module.py"
-        test_module.write_text(
-            """
-class Parent:
-    \"\"\"Parent class.\"\"\"
-    def parent_method(self):
-        \"\"\"Parent method.\"\"\"
-        pass
+    All tests use the inheritance fixture analyzed once in setup_class.
+    """
 
-class Child(Parent):
-    \"\"\"Child class.\"\"\"
-    def child_method(self):
-        \"\"\"Child method.\"\"\"
-        pass
-"""
-        )
+    PACKAGE_NAME = "inheritance"
 
-        loader = graph_loader.GraphLoader(neo4j_connection, package_name="test_single")
+    @pytest.fixture(scope="class", autouse=True)
+    def analyzed_inheritance_fixture(self, neo4j_connection):
+        """Analyze inheritance fixture once for all tests in this class."""
+        fixture_path = Path(__file__).parent.parent.parent / "fixtures/sample_projects/inheritance"
+
+        loader = graph_loader.GraphLoader(neo4j_connection, self.PACKAGE_NAME)
         loader.clear_package()
-        code_analyser = analyser.Analyser(tmp_path, loader=loader)
+
+        code_analyser = analyser.Analyser(fixture_path, loader=loader)
         result = code_analyser.analyse()
 
-        assert result.success is True
+        if not result.success:
+            pytest.fail(f"Failed to analyze inheritance fixture: {result.errors}")
 
-        with neo4j_connection.driver.session(database=neo4j_connection.database) as session:
-            # Verify both classes exist
-            classes = session.run(
+        yield neo4j_connection
+
+        # Cleanup after all tests
+        loader.clear_package()
+
+    def test_single_inheritance(self, analyzed_inheritance_fixture):
+        """Test simple single inheritance relationship (Animal -> Dog/Cat)."""
+        connection = analyzed_inheritance_fixture
+
+        with connection.driver.session(database=connection.database) as session:
+            # Verify Dog inherits from Animal
+            dog_inherits = session.run(
                 """
-                MATCH (c:Class {package: $pkg})
-                RETURN c.name as name
-                ORDER BY name
+                MATCH (dog:Class {package: $pkg, name: 'Dog'})-[:INHERITS]->(animal:Class {name: 'Animal'})
+                RETURN dog.fqn as dog, animal.fqn as animal
                 """,
-                pkg="test_single",
+                pkg=self.PACKAGE_NAME,
             ).data()
 
-            assert len(classes) == 2
-            assert classes[0]["name"] == "Child"
-            assert classes[1]["name"] == "Parent"
+            assert len(dog_inherits) == 1
+            assert dog_inherits[0]["dog"] == "derived.Dog"
+            assert dog_inherits[0]["animal"] == "base.Animal"
 
-            # Verify INHERITS relationship
+            # Verify Cat also inherits from Animal
+            cat_inherits = session.run(
+                """
+                MATCH (cat:Class {package: $pkg, name: 'Cat'})-[:INHERITS]->(animal:Class {name: 'Animal'})
+                RETURN cat.fqn as cat
+                """,
+                pkg=self.PACKAGE_NAME,
+            ).data()
+
+            assert len(cat_inherits) == 1
+            assert cat_inherits[0]["cat"] == "derived.Cat"
+
+    def test_inheritance_chain(self, analyzed_inheritance_fixture):
+        """Test inheritance chain GrandParent -> Parent -> Child."""
+        connection = analyzed_inheritance_fixture
+
+        with connection.driver.session(database=connection.database) as session:
+            # Verify chain relationships exist
             inherits = session.run(
                 """
                 MATCH (child:Class {package: $pkg})-[:INHERITS]->(parent:Class)
-                RETURN child.name as child, parent.name as parent
-                """,
-                pkg="test_single",
-            ).data()
-
-            assert len(inherits) == 1
-            assert inherits[0]["child"] == "Child"
-            assert inherits[0]["parent"] == "Parent"
-
-        loader.clear_package()
-
-    def test_inheritance_chain(self, neo4j_connection, tmp_path: Path):
-        """Test inheritance chain A -> B -> C."""
-        test_module = tmp_path / "test_module.py"
-        test_module.write_text(
-            """
-class GrandParent:
-    \"\"\"Grand parent class.\"\"\"
-    pass
-
-class Parent(GrandParent):
-    \"\"\"Parent class.\"\"\"
-    pass
-
-class Child(Parent):
-    \"\"\"Child class.\"\"\"
-    pass
-"""
-        )
-
-        loader = graph_loader.GraphLoader(neo4j_connection, package_name="test_chain")
-        loader.clear_package()
-        code_analyser = analyser.Analyser(tmp_path, loader=loader)
-        result = code_analyser.analyse()
-
-        assert result.success is True
-
-        with neo4j_connection.driver.session(database=neo4j_connection.database) as session:
-            # Verify inheritance chain
-            inherits = session.run(
-                """
-                MATCH (child:Class {package: $pkg})-[:INHERITS]->(parent:Class)
+                WHERE child.name IN ['Child', 'Parent'] AND parent.name IN ['Parent', 'GrandParent']
                 RETURN child.name as child, parent.name as parent
                 ORDER BY child
                 """,
-                pkg="test_chain",
+                pkg=self.PACKAGE_NAME,
             ).data()
 
             assert len(inherits) == 2
@@ -109,206 +88,94 @@ class Child(Parent):
             assert inherits[1]["child"] == "Parent"
             assert inherits[1]["parent"] == "GrandParent"
 
-        loader.clear_package()
-
-    def test_cross_module_inheritance(self, neo4j_connection, tmp_path: Path):
+    def test_cross_module_inheritance(self, analyzed_inheritance_fixture):
         """Test inheritance where base and derived are in different modules."""
-        # Base module
-        base_module = tmp_path / "base.py"
-        base_module.write_text(
-            """
-class Vehicle:
-    \"\"\"Base vehicle class.\"\"\"
-    def move(self):
-        \"\"\"Move vehicle.\"\"\"
-        pass
-"""
-        )
+        connection = analyzed_inheritance_fixture
 
-        # Derived module
-        derived_module = tmp_path / "derived.py"
-        derived_module.write_text(
-            """
-from cross_mod.base import Vehicle
-
-class Car(Vehicle):
-    \"\"\"Car class.\"\"\"
-    def drive(self):
-        \"\"\"Drive car.\"\"\"
-        pass
-"""
-        )
-
-        loader = graph_loader.GraphLoader(neo4j_connection, package_name="cross_mod")
-        loader.clear_package()
-        code_analyser = analyser.Analyser(tmp_path, loader=loader)
-        result = code_analyser.analyse()
-
-        assert result.success is True
-
-        with neo4j_connection.driver.session(database=neo4j_connection.database) as session:
-            # Verify cross-module inheritance
+        with connection.driver.session(database=connection.database) as session:
+            # Verify cross-module inheritance (derived.Dog -> base.Animal)
             inherits = session.run(
                 """
-                MATCH (car:Class {package: $pkg, name: 'Car'})-[:INHERITS]->(vehicle:Class {name: 'Vehicle'})
-                RETURN car.fqn as car_fqn, vehicle.fqn as vehicle_fqn
+                MATCH (m1:Module)-[:DEFINES]->(dog:Class {name: 'Dog'})-[:INHERITS]->(animal:Class {name: 'Animal'})<-[:DEFINES]-(m2:Module)
+                WHERE m1.name <> m2.name
+                RETURN dog.fqn as dog_fqn, animal.fqn as animal_fqn, m1.name as dog_module, m2.name as animal_module
                 """,
-                pkg="cross_mod",
             ).data()
 
             assert len(inherits) == 1
-            assert inherits[0]["car_fqn"] == "derived.Car"
-            assert inherits[0]["vehicle_fqn"] == "base.Vehicle"
+            assert inherits[0]["dog_fqn"] == "derived.Dog"
+            assert inherits[0]["animal_fqn"] == "base.Animal"
+            assert inherits[0]["dog_module"] == "derived"
+            assert inherits[0]["animal_module"] == "base"
 
-        loader.clear_package()
-
-    def test_multiple_inheritance(self, neo4j_connection, tmp_path: Path):
+    def test_multiple_inheritance(self, analyzed_inheritance_fixture):
         """Test class inheriting from multiple base classes."""
-        test_module = tmp_path / "test_module.py"
-        test_module.write_text(
-            """
-class Mixin1:
-    \"\"\"First mixin.\"\"\"
-    pass
+        connection = analyzed_inheritance_fixture
 
-class Mixin2:
-    \"\"\"Second mixin.\"\"\"
-    pass
-
-class Combined(Mixin1, Mixin2):
-    \"\"\"Combined class with multiple inheritance.\"\"\"
-    pass
-"""
-        )
-
-        loader = graph_loader.GraphLoader(neo4j_connection, package_name="test_multi")
-        loader.clear_package()
-        code_analyser = analyser.Analyser(tmp_path, loader=loader)
-        result = code_analyser.analyse()
-
-        assert result.success is True
-
-        with neo4j_connection.driver.session(database=neo4j_connection.database) as session:
-            # Verify multiple INHERITS relationships
+        with connection.driver.session(database=connection.database) as session:
+            # Verify Combined inherits from both Mixin1 and Mixin2
             inherits = session.run(
                 """
                 MATCH (combined:Class {package: $pkg, name: 'Combined'})-[:INHERITS]->(base:Class)
                 RETURN base.name as base_name
                 ORDER BY base_name
                 """,
-                pkg="test_multi",
+                pkg=self.PACKAGE_NAME,
             ).data()
 
             assert len(inherits) == 2
             assert inherits[0]["base_name"] == "Mixin1"
             assert inherits[1]["base_name"] == "Mixin2"
 
-        loader.clear_package()
-
-    def test_inheritance_with_methods(self, neo4j_connection, tmp_path: Path):
+    def test_inheritance_with_methods(self, analyzed_inheritance_fixture):
         """Test that inherited methods are tracked correctly."""
-        test_module = tmp_path / "test_module.py"
-        test_module.write_text(
-            """
-class Base:
-    \"\"\"Base class.\"\"\"
-    def base_method(self):
-        \"\"\"Base method.\"\"\"
-        return "base"
+        connection = analyzed_inheritance_fixture
 
-class Derived(Base):
-    \"\"\"Derived class.\"\"\"
-    def derived_method(self):
-        \"\"\"Derived method.\"\"\"
-        return "derived"
-
-    def override_method(self):
-        \"\"\"Override method.\"\"\"
-        return "overridden"
-"""
-        )
-
-        loader = graph_loader.GraphLoader(neo4j_connection, package_name="test_methods")
-        loader.clear_package()
-        code_analyser = analyser.Analyser(tmp_path, loader=loader)
-        result = code_analyser.analyse()
-
-        assert result.success is True
-
-        with neo4j_connection.driver.session(database=neo4j_connection.database) as session:
-            # Verify inheritance exists
-            inherits = session.run(
+        with connection.driver.session(database=connection.database) as session:
+            # Verify Dog class has methods
+            dog_methods = session.run(
                 """
-                MATCH (derived:Class {package: $pkg})-[:INHERITS]->(base:Class)
-                RETURN derived.name as derived, base.name as base
+                MATCH (dog:Class {package: $pkg, name: 'Dog'})-[:CONTAINS]->(m:Method)
+                RETURN m.name as method_name
+                ORDER BY method_name
                 """,
-                pkg="test_methods",
+                pkg=self.PACKAGE_NAME,
             ).data()
 
-            assert len(inherits) == 1
+            # Dog has speak() and fetch()
+            assert len(dog_methods) == 2
+            method_names = [m["method_name"] for m in dog_methods]
+            assert "speak" in method_names
+            assert "fetch" in method_names
 
-            # Verify methods are tracked
-            methods = session.run(
+            # Verify Animal class has methods
+            animal_methods = session.run(
                 """
-                MATCH (c:Class {package: $pkg})-[:CONTAINS]->(m:Method)
-                RETURN c.name as class_name, m.name as method_name
-                ORDER BY class_name, method_name
+                MATCH (animal:Class {package: $pkg, name: 'Animal'})-[:CONTAINS]->(m:Method)
+                RETURN m.name as method_name
                 """,
-                pkg="test_methods",
+                pkg=self.PACKAGE_NAME,
             ).data()
 
-            # Base has 1 method, Derived has 2 methods
-            base_methods = [m for m in methods if m["class_name"] == "Base"]
-            derived_methods = [m for m in methods if m["class_name"] == "Derived"]
+            # Animal has __init__ and speak()
+            assert len(animal_methods) >= 1
+            method_names = [m["method_name"] for m in animal_methods]
+            assert "speak" in method_names
 
-            assert len(base_methods) == 1
-            assert base_methods[0]["method_name"] == "base_method"
-
-            assert len(derived_methods) == 2
-            assert derived_methods[0]["method_name"] == "derived_method"
-            assert derived_methods[1]["method_name"] == "override_method"
-
-        loader.clear_package()
-
-    def test_inheritance_diamond_pattern(self, neo4j_connection, tmp_path: Path):
+    def test_inheritance_diamond_pattern(self, analyzed_inheritance_fixture):
         """Test diamond inheritance pattern (A <- B, A <- C, B <- D, C <- D)."""
-        test_module = tmp_path / "test_module.py"
-        test_module.write_text(
-            """
-class A:
-    \"\"\"Top of diamond.\"\"\"
-    pass
+        connection = analyzed_inheritance_fixture
 
-class B(A):
-    \"\"\"Left branch.\"\"\"
-    pass
-
-class C(A):
-    \"\"\"Right branch.\"\"\"
-    pass
-
-class D(B, C):
-    \"\"\"Bottom of diamond.\"\"\"
-    pass
-"""
-        )
-
-        loader = graph_loader.GraphLoader(neo4j_connection, package_name="test_diamond")
-        loader.clear_package()
-        code_analyser = analyser.Analyser(tmp_path, loader=loader)
-        result = code_analyser.analyse()
-
-        assert result.success is True
-
-        with neo4j_connection.driver.session(database=neo4j_connection.database) as session:
-            # Verify all inheritance relationships
+        with connection.driver.session(database=connection.database) as session:
+            # Verify all diamond relationships
             inherits = session.run(
                 """
                 MATCH (child:Class {package: $pkg})-[:INHERITS]->(parent:Class)
+                WHERE child.name IN ['B', 'C', 'D'] AND parent.name IN ['A', 'B', 'C']
                 RETURN child.name as child, parent.name as parent
                 ORDER BY child, parent
                 """,
-                pkg="test_diamond",
+                pkg=self.PACKAGE_NAME,
             ).data()
 
             # B->A, C->A, D->B, D->C
@@ -324,5 +191,3 @@ class D(B, C):
             assert c_to_a
             assert d_to_b
             assert d_to_c
-
-        loader.clear_package()

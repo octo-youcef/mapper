@@ -1,7 +1,7 @@
 """Module B - imports from module C."""
 
+import module_c  # Internal import
 import numpy as np
-from cross_module import module_c
 
 
 def transform(data):

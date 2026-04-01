@@ -1,7 +1,7 @@
 """Module A - imports from module B and external packages."""
 
+import module_b  # Internal import
 import pandas as pd
-from cross_module import module_b
 
 
 def process_with_b(data):

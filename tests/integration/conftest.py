@@ -5,7 +5,7 @@ import pytest
 from mapper import config_manager, graph
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def neo4j_connection():
     """Create Neo4j connection for integration tests.
 
