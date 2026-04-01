@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **CLAUDE.md comprehensive standards update** - Aligned project documentation with personal standards
+  - Added Docker Configuration section (multi-stage builds, environment variables, volumes, justfile integration)
+  - Added CI/CD section (GitHub Actions workflows, required checks, badge management, branch protection)
+  - Added Configuration Management section (TOML format, attrs-based config, hierarchy, secrets handling)
+  - Added CLI Patterns section (Rich output, quiet/verbose modes, error handling, progress bars)
+  - Added Enums section (pattern matching with match/case, string-backed enums, attrs integration)
+  - Pre-commit and pre-push hooks sections (already existed, verified complete)
+  - All sections follow personal project standards (GitHub Actions, not CircleCI)
+  - Simplified CLI Patterns to focus on implemented features
+
 ## [0.6.7] - 2026-04-01
 
 ### Added

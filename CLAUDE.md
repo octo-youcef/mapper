@@ -370,6 +370,163 @@ updated = attrs.evolve(config, port=5433)
 
 **Data only** - Use dataclasses only for data containers, not objects with behavior. If you need methods/logic, use regular classes.
 
+### Enums for Domain Modeling
+
+**Use enums instead of string literals for states, types, and formats.**
+
+Enums provide type safety, validation, and enable pattern matching.
+
+#### When to Use Enums
+
+Use enums for:
+- **States and statuses**: connection states, job statuses, workflow stages
+- **Types and formats**: output formats, data types, protocol versions
+- **Fixed sets of options**: log levels, priorities, categories
+
+**Don't use for:**
+- Boolean flags (use actual booleans)
+- Arbitrary constants (use module-level constants)
+- Dynamic values that change at runtime
+
+#### Basic Enum Usage
+
+```python
+import enum
+
+# ✅ CORRECT - Enum for connection states
+class ConnectionState(enum.Enum):
+    DISCONNECTED = enum.auto()
+    CONNECTING = enum.auto()
+    CONNECTED = enum.auto()
+    FAILED = enum.auto()
+
+# ✅ CORRECT - Enum for output formats
+class OutputFormat(enum.Enum):
+    JSON = "json"
+    YAML = "yaml"
+    TOML = "toml"
+
+# ❌ INCORRECT - String literals
+def process_data(format: str):  # format could be anything!
+    if format == "json":  # Typo: "jsno" would fail at runtime
+        return to_json(data)
+    elif format == "yaml":
+        return to_yaml(data)
+
+# ✅ CORRECT - Type-safe enum
+def process_data(format: OutputFormat):
+    if format == OutputFormat.JSON:
+        return to_json(data)
+    elif format == OutputFormat.YAML:
+        return to_yaml(data)
+    # OutputFormat.JSNO would be caught by IDE/mypy at parse time
+```
+
+#### Pattern Matching with match/case
+
+Enums unlock Python 3.10+ pattern matching:
+
+```python
+import enum
+
+class JobStatus(enum.Enum):
+    PENDING = enum.auto()
+    RUNNING = enum.auto()
+    COMPLETED = enum.auto()
+    FAILED = enum.auto()
+
+def handle_job(status: JobStatus) -> str:
+    """Handle job based on status using pattern matching."""
+    match status:
+        case JobStatus.PENDING:
+            return "Job queued for execution"
+        case JobStatus.RUNNING:
+            return "Job currently executing"
+        case JobStatus.COMPLETED:
+            return "Job finished successfully"
+        case JobStatus.FAILED:
+            return "Job failed, check logs"
+        case _:  # Exhaustiveness check - IDE warns if cases missing
+            raise ValueError(f"Unknown status: {status}")
+```
+
+#### String-Backed Enums
+
+Use `StrEnum` (Python 3.11+) for enums that need string values:
+
+```python
+import enum
+
+# Python 3.11+
+class Environment(enum.StrEnum):
+    DEVELOPMENT = "development"
+    STAGING = "staging"
+    PRODUCTION = "production"
+
+# Benefits: works with string operations and serialization
+env = Environment.PRODUCTION
+print(f"Running in {env}")  # "Running in production"
+assert env == "production"  # True
+```
+
+#### Enums with Associated Data
+
+Use attrs with enums for complex states:
+
+```python
+import enum
+import attrs
+import datetime
+
+class ConnectionState(enum.Enum):
+    DISCONNECTED = enum.auto()
+    CONNECTING = enum.auto()
+    CONNECTED = enum.auto()
+    FAILED = enum.auto()
+
+@attrs.define
+class Connection:
+    state: ConnectionState
+    connected_since: datetime.datetime | None = None
+    error: str | None = None
+
+# Usage with pattern matching
+def get_status_message(conn: Connection) -> str:
+    match conn.state:
+        case ConnectionState.DISCONNECTED:
+            return "Not connected"
+        case ConnectionState.CONNECTING:
+            return "Connecting..."
+        case ConnectionState.CONNECTED:
+            return f"Connected since {conn.connected_since}"
+        case ConnectionState.FAILED:
+            return f"Connection failed: {conn.error}"
+```
+
+#### Why Enums Matter
+
+**Type Safety**: Adding a new enum member is validated by mypy:
+```python
+class Status(Enum):
+    ACTIVE = auto()
+    INACTIVE = auto()
+    # Add new member - all match statements get flagged if incomplete
+
+def handle_status(status: Status):
+    match status:
+        case Status.ACTIVE:
+            ...
+        case Status.INACTIVE:
+            ...
+        # mypy warns: missing case for new enum member
+```
+
+**IDE Support**: Autocomplete and refactoring work correctly with enums.
+
+**Self-Documenting**: Enum members show all valid values in one place.
+
+**Prevents Typos**: `Status.ACTVE` caught at parse time, `"actve"` fails at runtime.
+
 ### Code Organization
 
 **Application Logic:**
@@ -426,6 +583,320 @@ tests/
 - Allow filtering later - comprehensive mapping is the goal
 - For imported modules: reference them only (their analysis is separate)
 - Track versions for incremental updates
+
+### CLI Patterns
+
+**Framework**: Use Typer for CLI with Rich for output.
+
+#### Basic Rich Output
+
+Use Rich for colorized terminal output:
+
+```python
+from rich.console import Console
+from rich.table import Table
+
+console = Console()
+
+# Status messages with color
+console.print("[bold green]✓ Success[/bold green]")
+console.print("[yellow]⚠ Warning[/yellow]")
+console.print("[red]✗ Error[/red]")
+
+# Tables for structured data
+table = Table(title="Configuration")
+table.add_column("Key", style="cyan")
+table.add_column("Value")
+table.add_row("neo4j.uri", "bolt://localhost:7687")
+console.print(table)
+```
+
+#### Output Modes
+
+Support `--quiet` and `--verbose` flags:
+
+```python
+@app.command()
+def analyse(
+    path: Path,
+    quiet: bool = typer.Option(False, "--quiet", "-q"),
+    verbose: bool = typer.Option(False, "--verbose", "-v"),
+) -> None:
+    """Analyse package."""
+    if not quiet:
+        console.print(f"[cyan]Analyzing:[/cyan] {path}")
+    
+    if verbose:
+        console.print(f"[dim]Configuration:[/dim] {config.neo4j.uri}")
+    
+    # Run analysis
+    result = run_analysis(path)
+    
+    if not quiet:
+        console.print(f"[green]✓[/green] Complete: {result.files_analyzed} files")
+```
+
+#### Progress Indication
+
+Show progress for long-running operations:
+
+```python
+from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn
+
+with Progress(
+    SpinnerColumn(),
+    TextColumn("[progress.description]{task.description}"),
+    BarColumn(),
+    TextColumn("{task.completed}/{task.total} files"),
+) as progress:
+    task = progress.add_task("Analyzing package...", total=len(files))
+    
+    for file in files:
+        analyze_file(file)
+        progress.update(task, advance=1)
+```
+
+#### Error Handling
+
+Use clear error messages with appropriate exit codes:
+
+```python
+# Exit codes
+# 0: Success
+# 1: General error
+# 2: Configuration error  
+# 3: Connection error
+
+try:
+    result = run_analysis(path)
+except FileNotFoundError as e:
+    console.print(f"[red]Error:[/red] {e}")
+    console.print("[dim]Hint: Check that the path exists[/dim]")
+    raise typer.Exit(code=1)
+except ConnectionError as e:
+    console.print(f"[red]Database unavailable:[/red] {e}")
+    console.print("[dim]Hint: Run 'just up' to start Neo4j[/dim]")
+    raise typer.Exit(code=3)
+```
+
+---
+
+## Configuration Management
+
+### File Format
+
+Use **TOML** for all configuration files.
+
+**Why TOML**:
+- Human-readable and writable
+- Clear structure with sections
+- Type-safe (booleans, integers, strings, arrays)
+- Python native support via `tomllib` (Python 3.11+)
+
+### Configuration Structure with attrs
+
+Define configuration using attrs dataclasses with validation:
+
+```python
+import attrs
+from attrs import field
+
+def _validate_port(instance, attribute, value):
+    if not 1 <= value <= 65535:
+        raise ValueError(f"Port must be 1-65535, got {value}")
+
+@attrs.define
+class DatabaseConfig:
+    """Database connection configuration."""
+    host: str = "localhost"
+    port: int = field(default=5432, validator=_validate_port)
+    username: str = "postgres"
+    timeout: int = 30
+
+@attrs.define
+class Neo4jConfig:
+    """Neo4j graph database configuration."""
+    uri: str = "bolt://localhost:7687"
+    username: str = "neo4j"
+    password: str = field(repr=False)  # Don't print in logs
+    database: str = "neo4j"
+
+@attrs.define
+class AppConfig:
+    """Application configuration."""
+    neo4j: Neo4jConfig
+    debug: bool = False
+    log_level: str = "INFO"
+```
+
+### Loading Configuration
+
+Load configuration at application startup:
+
+```python
+import tomllib
+from pathlib import Path
+
+def load_config() -> AppConfig:
+    """Load configuration from file."""
+    config_path = Path("~/.config/mapper/config.toml").expanduser()
+    
+    if not config_path.exists():
+        raise ConfigError(f"Config file not found: {config_path}")
+    
+    with open(config_path, "rb") as f:
+        data = tomllib.load(f)
+    
+    return AppConfig(
+        neo4j=Neo4jConfig(**data["neo4j"]),
+        debug=data.get("debug", False),
+        log_level=data.get("log_level", "INFO"),
+    )
+
+# In main application
+config = load_config()
+app = MapperApp(config)
+app.run()
+```
+
+### Configuration Hierarchy
+
+Configuration precedence from lowest to highest priority:
+
+1. **Defaults in attrs class** - Hardcoded sensible defaults
+2. **Global config file** - `/etc/mapper/config.toml` (system-wide)
+3. **Local config file** - `~/.config/mapper/config.toml` (user-specific)
+4. **Environment variables** - `MAPPER_NEO4J_URI`, `MAPPER_DEBUG`, etc.
+5. **CLI arguments** - `--neo4j-uri`, `--debug`, etc.
+
+Higher levels override lower levels. Example with Typer:
+
+```python
+@app.command()
+def analyse(
+    path: Path,
+    neo4j_uri: str | None = typer.Option(None, envvar="MAPPER_NEO4J_URI"),
+    debug: bool = typer.Option(False, envvar="MAPPER_DEBUG"),
+) -> None:
+    """Analyse Python package."""
+    # Load base config from file
+    config = load_config()
+    
+    # Override with environment variables and CLI args
+    if neo4j_uri:
+        config = attrs.evolve(
+            config,
+            neo4j=attrs.evolve(config.neo4j, uri=neo4j_uri)
+        )
+    if debug:
+        config = attrs.evolve(config, debug=True)
+    
+    # Run analysis with final config
+    run_analysis(path, config)
+```
+
+### Generated Config Files
+
+Generated or shipped config files should be **self-documenting** with all options commented:
+
+```toml
+# ~/.config/mapper/config.toml
+
+[neo4j]
+# Graph database connection
+# uri = "bolt://localhost:7687"    # Default
+# username = "neo4j"                # Default  
+# database = "neo4j"                # Default
+
+# Uncomment and modify for production
+uri = "bolt://prod-neo4j:7687"
+username = "mapper_user"
+password = "secure_password"
+
+# Application settings
+# debug = false      # Default
+# log_level = "INFO" # Default
+
+# Uncomment for development
+debug = true
+log_level = "DEBUG"
+```
+
+### Secrets Handling
+
+**NEVER store secrets in config files committed to version control.**
+
+**Use environment variables for all secrets**:
+
+```bash
+# .env (NEVER commit this file)
+MAPPER_NEO4J_PASSWORD=secure_password
+MAPPER_API_KEY=secret_key_here
+```
+
+**Provide `.env.example` template**:
+
+```bash
+# .env.example
+MAPPER_NEO4J_PASSWORD=your_password_here
+MAPPER_API_KEY=your_api_key_here
+```
+
+**Load secrets from environment**:
+
+```python
+import os
+
+@attrs.define
+class Neo4jConfig:
+    uri: str
+    username: str
+    password: str = field(repr=False)
+    
+    @classmethod
+    def from_env(cls) -> "Neo4jConfig":
+        """Load from environment variables."""
+        return cls(
+            uri=os.environ.get("MAPPER_NEO4J_URI", "bolt://localhost:7687"),
+            username=os.environ.get("MAPPER_NEO4J_USERNAME", "neo4j"),
+            password=os.environ["MAPPER_NEO4J_PASSWORD"],  # Required!
+        )
+```
+
+### Interactive Configuration
+
+For CLI tools, provide interactive setup command:
+
+```python
+@app.command()
+def init() -> None:
+    """Initialize configuration interactively."""
+    console.print("[bold]Mapper Configuration Setup[/bold]")
+    
+    # Prompt for required values
+    neo4j_uri = typer.prompt("Neo4j URI", default="bolt://localhost:7687")
+    neo4j_user = typer.prompt("Neo4j username", default="neo4j")
+    neo4j_password = typer.prompt("Neo4j password", hide_input=True)
+    
+    # Create config structure
+    config = AppConfig(
+        neo4j=Neo4jConfig(
+            uri=neo4j_uri,
+            username=neo4j_user,
+            password=neo4j_password,
+        ),
+    )
+    
+    # Save to config file
+    config_path = Path("~/.config/mapper/config.toml").expanduser()
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    # Write TOML (with password redacted in file, stored in env)
+    with open(config_path, "w") as f:
+        f.write(generate_config_toml(config))
+    
+    console.print(f"[green]✓[/green] Configuration saved to {config_path}")
+```
 
 ---
 
@@ -556,6 +1027,176 @@ def test_quiet_short_flag(self):
 - Use lambda for complex parameter sets: `ids=lambda x: x if isinstance(x, str) and "-" in x else ""`
 
 **Benefits:** Reduces code duplication, makes test patterns explicit, easier to add new test cases
+
+---
+
+## CI/CD (Continuous Integration)
+
+### Platform
+
+- **Personal projects**: Use GitHub Actions
+- **Work projects**: Use CircleCI
+
+This project uses **GitHub Actions** for all CI/CD workflows.
+
+### Required Checks on Every PR
+
+All pull requests must pass these checks before merge:
+
+1. **✅ Linting and formatting**
+   - Code formatting (ruff format)
+   - Import sorting (isort)
+   - Code quality (ruff check)
+   
+2. **✅ Type checking**
+   - Static type analysis (mypy)
+   - All type hints validated
+
+3. **✅ Tests**
+   - Unit tests on Python 3.10, 3.11, 3.12
+   - Integration tests on Python 3.10, 3.11, 3.12
+   - All tests must pass
+
+4. **✅ Coverage threshold**
+   - Minimum 80% test coverage (configurable)
+   - Enforced by CI, not blocking but reported
+
+5. **✅ Security scanning**
+   - Dependency vulnerability scanning (future)
+   - Secret scanning (GitHub automatic)
+
+### CI Workflow Structure
+
+**Three parallel jobs** for fast feedback:
+
+```yaml
+jobs:
+  lint:      # Formatting, imports, code quality, type hints
+  test:      # Unit tests with coverage (matrix: 3.10, 3.11, 3.12)
+  integration: # Integration tests with Neo4j (matrix: 3.10, 3.11, 3.12)
+```
+
+All jobs must pass for PR to be mergeable.
+
+### CI/Pre-Push Alignment
+
+**IMPORTANT**: CI checks must match pre-push hooks exactly.
+
+If CI runs `just test-coverage`, pre-push must run `just test-coverage`.
+If CI runs `just lint`, pre-push must run `just lint`.
+
+**Why**: Developers should never be surprised by CI failures. If pre-push passes, CI should pass.
+
+### Workflows
+
+#### 1. CI Workflow (`.github/workflows/ci.yml`)
+
+**Trigger**: On pull request to `main`
+
+**Jobs**:
+- `lint`: Code quality checks (Python 3.12 only)
+  - Formatting: `just lint-format`
+  - Imports: `just lint-imports`
+  - Quality: `just lint-ruff`
+  - Types: `just lint-types`
+
+- `test`: Unit tests with coverage (Python 3.10, 3.11, 3.12)
+  - Run: `just test-coverage`
+  - Generate coverage report
+  - Upload coverage artifact
+
+- `integration`: Integration tests (Python 3.10, 3.11, 3.12)
+  - Start Neo4j service container
+  - Run: `just test-integration`
+  - Tests against real database
+
+#### 2. Release Workflow (`.github/workflows/release.yml`)
+
+**Trigger**: On push to `main` branch
+
+**Actions**:
+1. Extract version from `pyproject.toml`
+2. Check if git tag exists for version
+3. If tag doesn't exist:
+   - Create annotated git tag (`vX.Y.Z`)
+   - Push tag to remote
+   - Extract CHANGELOG section for version
+   - Create GitHub release with changelog notes
+
+**Why**: Automates release creation when version is bumped in PR.
+
+#### 3. Badge Update Workflow (`.github/workflows/update-coverage-badge.yml`)
+
+**Trigger**: On push to `main` branch
+
+**Actions**:
+1. Run tests with coverage
+2. Extract test count and coverage percentage
+3. Generate JSON for shields.io badges
+4. Update GitHub Gist with badge data
+
+**Badges in README**:
+- Tests: Shows "X passing" from test run
+- Coverage: Shows "X%" with color based on threshold
+  - ≥90%: bright green
+  - ≥75%: green
+  - ≥60%: yellow
+  - ≥40%: orange
+  - <40%: red
+
+### Adding New CI Checks
+
+When adding a new quality check:
+
+1. **Add to justfile** - Create `just check-name` command
+2. **Add to pre-push hook** - Add to `git-pre-push` recipe
+3. **Add to CI workflow** - Add step to `ci.yml`
+4. **Document in CLAUDE.md** - Update this section
+
+**Example**:
+```makefile
+# justfile
+[group('quality')]
+check-security:
+    uv run bandit -r src/
+
+# Add to pre-push
+git-pre-push: format lint typecheck test-coverage test-integration check-security
+```
+
+```yaml
+# ci.yml
+- name: Security scan
+  run: just check-security
+```
+
+### Monitoring CI
+
+**View CI status**:
+```bash
+# In PR, view checks
+gh pr view <number> --json statusCheckRollup
+
+# Watch CI run
+gh run watch
+
+# View recent runs
+gh run list --workflow=ci.yml
+```
+
+**Debugging CI failures**:
+1. Check workflow logs in GitHub UI
+2. Reproduce locally: Run exact command from failing step
+3. Check for environment differences (Python version, dependencies)
+4. Run in Docker container matching CI environment if needed
+
+### Branch Protection Rules
+
+**main branch** is protected with required checks:
+- All CI workflow checks must pass
+- At least one approval required
+- Force push disabled
+- Direct commits disabled (all changes via PR)
 
 ---
 
@@ -746,6 +1387,177 @@ All documentation must be checked for validity before commit:
 
 ---
 
+## Docker Configuration
+
+### Directory Structure
+
+All Docker-related files should be organized in `docker/` directory at project root:
+
+```
+docker/
+├── docker-compose.yml       # Service orchestration
+├── docker-compose.dev.yml   # Development overrides
+├── Dockerfile               # Application image
+└── neo4j/
+    └── init.cypher          # Database initialization scripts
+```
+
+**Note**: Current project has Docker files in root directory. This should be refactored to follow the standard structure above.
+
+### Docker Compose Services
+
+The project uses Docker Compose to orchestrate multiple services:
+
+- **neo4j**: Neo4j graph database (community edition)
+  - Ports: 7474 (HTTP Browser), 7687 (Bolt protocol)
+  - Volumes: Persist database data and logs
+  - Healthcheck: Ensures database is ready before dependent services start
+  - Plugins: APOC for advanced procedures
+
+- **api**: FastAPI backend service
+  - Built from project Dockerfile
+  - Volume mount for live reload during development
+  - Depends on Neo4j healthcheck
+  - Environment variables for database connection
+
+- **web**: React web UI (when implemented)
+  - Node.js environment for development
+  - Volume mount for live reload
+  - Depends on API service
+
+### Multi-Stage Builds (REQUIRED)
+
+**Standard**: Dockerfiles must use multi-stage builds to minimize image size.
+
+**Pattern**:
+```dockerfile
+# Builder stage - install dependencies
+FROM python:3.12-slim AS builder
+WORKDIR /app
+COPY pyproject.toml uv.lock ./
+RUN pip install uv && uv sync --frozen
+
+# Runtime stage - minimal image
+FROM python:3.12-slim
+WORKDIR /app
+COPY --from=builder /app/.venv /app/.venv
+COPY src/ ./src/
+ENV PATH="/app/.venv/bin:$PATH"
+CMD ["uvicorn", "mapper.api:app", "--host", "0.0.0.0"]
+```
+
+**Why**: Separates build tools from runtime, reducing image size by 50-70%.
+
+### Environment Variables
+
+**Development**: Environment variables defined in `docker-compose.yml` for convenience.
+
+**Production**: Environment variables loaded from `.env` file (never committed):
+
+```yaml
+# docker-compose.yml
+services:
+  api:
+    env_file:
+      - .env
+```
+
+**Required variables** in `.env.example`:
+```bash
+# Neo4j Connection
+NEO4J_URI=bolt://neo4j:7687
+NEO4J_USER=neo4j
+NEO4J_PASSWORD=your_secure_password
+
+# Application
+ENVIRONMENT=production
+LOG_LEVEL=INFO
+```
+
+**Never commit `.env` files** - they contain sensitive credentials.
+
+### Volume Configuration
+
+**Data persistence** - Named volumes for database data:
+```yaml
+volumes:
+  neo4j_data:
+  neo4j_logs:
+```
+
+**Live reload** - Bind mounts for development:
+```yaml
+services:
+  api:
+    volumes:
+      - .:/app  # Mount project directory for live reload
+```
+
+**Why**: Named volumes persist data across container recreations. Bind mounts enable live code reloading during development.
+
+### Justfile Integration
+
+Docker commands are wrapped in justfile for convenience:
+
+```makefile
+[group('docker')]
+build:
+    docker compose -f docker/docker-compose.yml build
+
+[group('docker')]
+up:
+    docker compose -f docker/docker-compose.yml up -d
+
+[group('docker')]
+down:
+    docker compose -f docker/docker-compose.yml down
+
+[group('docker')]
+reset:
+    docker compose -f docker/docker-compose.yml down -v
+    docker compose -f docker/docker-compose.yml build --no-cache
+    docker compose -f docker/docker-compose.yml up -d
+
+[group('docker')]
+logs service:
+    docker compose -f docker/docker-compose.yml logs -f {{service}}
+
+[group('docker')]
+shell service:
+    docker compose -f docker/docker-compose.yml exec {{service}} /bin/bash
+```
+
+### Service Access
+
+When services are running:
+- **Neo4j Browser**: http://localhost:7474 (username: neo4j, password: devpassword)
+- **Neo4j Bolt**: bolt://localhost:7687
+- **Backend API**: http://localhost:8080/api/
+- **API Docs**: http://localhost:8080/docs
+- **Web UI**: http://localhost:3000 (when implemented)
+
+### Common Operations
+
+```bash
+# Start all services
+just up
+
+# View logs for specific service
+just logs neo4j
+just logs api
+
+# Open shell in service
+just shell api
+
+# Full reset (stop, remove volumes, rebuild, start)
+just reset
+
+# Stop all services
+just down
+```
+
+---
+
 ## Common Commands
 
 ```bash
@@ -805,4 +1617,4 @@ just mapper [args]    # Run CLI tool
 ---
 
 **Last Updated**: 2026-03-31
-**Current Version**: 0.6.7
+**Current Version**: 0.6.8
