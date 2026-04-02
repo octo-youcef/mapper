@@ -80,25 +80,6 @@ Examples of what to ask about:
 
 ## Development Workflow
 
-### User Outcomes First
-
-Work should be framed as **"a user can do X"** rather than "implement feature Y".
-
-**IMPORTANT**: If a request is not framed this way, ask me to reframe it as a user outcome.
-
-Always start with user-journey documentation for review - that will save significant time writing code. Outcome achieved is good, we can refactor in review.
-
-### Interface First
-
-When writing code, always design the interface first, then implement. How something is used should inform how it is built.
-
-**Design workflow:**
-1. Draft interface document describing the public API/interface (how it will be used)
-2. Include example usage code
-3. Create a **draft PR** with the interface documentation
-4. Wait for review and feedback
-5. Only then implement internals
-
 ### Feature Implementation Workflow (CRITICAL)
 
 **Goal: Small increments, fast feedback, fewer review rounds.**
