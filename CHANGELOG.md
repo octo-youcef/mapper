@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-04-02
+
+### Changed
+- **Restructured CLAUDE.md** - Split 1003-line file into focused documentation
+  - Created `docs/contributing/` with 4 specialized guides:
+    - `python-style.md` - Type hints, docstrings, error handling, data structures
+    - `code-architecture.md` - Patterns, organization, enums, Neo4j schema
+    - `testing.md` - Coverage, organization, parametrization, quality checks
+    - `documentation.md` - Structure, formats, validity requirements
+  - Streamlined CLAUDE.md to ~600 lines focusing on project-specific workflows and critical rules
+  - Added table of contents and Code Standards Reference section
+  - Improved discoverability and navigation of coding standards
+
 ## [0.7.0] - 2026-04-01
 
 ### Added
@@ -38,19 +51,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Severity calculation details and risk descriptions
   - Actions to take for each risk type
 - **CLI reference**: `docs/interface/cli.md` updated with query commands
-
-## [0.6.8] - 2026-04-02
-
-### Changed
-- **CLAUDE.md comprehensive standards update** - Aligned project documentation with personal standards
-  - Added Docker Configuration section (multi-stage builds, environment variables, volumes, justfile integration)
-  - Added CI/CD section (GitHub Actions workflows, required checks, badge management, branch protection)
-  - Added Configuration Management section (TOML format, attrs-based config, hierarchy, secrets handling)
-  - Added CLI Patterns section (Rich output, quiet/verbose modes, error handling, progress bars)
-  - Added Enums section (pattern matching with match/case, string-backed enums, attrs integration)
-  - Pre-commit and pre-push hooks sections (already existed, verified complete)
-  - All sections follow personal project standards (GitHub Actions, not CircleCI)
-  - Simplified CLI Patterns to focus on implemented features
 
 ## [0.6.7] - 2026-04-01
 

@@ -64,7 +64,7 @@ jobs:
 
       - name: Update gist with badges
         env:
-          GIST_ID: 9501806ed5eac873dd324bc606c6dd79
+          GIST_ID: 3424657d04826a3196811985d2f13687
           GITHUB_TOKEN: ${{ secrets.GIST_TOKEN }}
         run: |
           # Create test badge JSON

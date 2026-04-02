@@ -1,8 +1,8 @@
 # Mapper (Application Mapper)
 
-![Version](https://img.shields.io/badge/version-0.7.0-blue.svg)
-![Tests](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/ydkadri/9501806ed5eac873dd324bc606c6dd79/raw/mapper-tests.json&cacheSeconds=300)
-![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/ydkadri/9501806ed5eac873dd324bc606c6dd79/raw/mapper-coverage.json&cacheSeconds=300)
+![Version](https://img.shields.io/badge/version-0.7.1-blue.svg)
+![Tests](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/ydkadri/3424657d04826a3196811985d2f13687/raw/mapper-tests.json&cacheSeconds=300)
+![Coverage](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/ydkadri/3424657d04826a3196811985d2f13687/raw/mapper-coverage.json&cacheSeconds=300)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)
 
 AST-based Python code analyser that maps application structure and relationships into a Neo4j graph database, with CLI and web UI for exploration.
