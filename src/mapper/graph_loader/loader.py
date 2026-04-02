@@ -139,7 +139,9 @@ class GraphLoader:
                             from_id, to_id, graph.RelationshipType.INHERITS
                         )
                     case "calls":
-                        self.connection.create_relationship(from_id, to_id, graph.RelationshipType.CALLS)
+                        self.connection.create_relationship(
+                            from_id, to_id, graph.RelationshipType.CALLS
+                        )
                     case "imports":
                         self.connection.create_relationship(
                             from_id, to_id, graph.RelationshipType.IMPORTS
