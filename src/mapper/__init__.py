@@ -8,6 +8,7 @@ from mapper import (
     graph,
     graph_loader,
     name_resolver,
+    query_system,
     status_checker,
     type_inference,
 )
@@ -17,7 +18,7 @@ from mapper.graph import Neo4jConnection
 from mapper.graph_loader import GraphLoader
 from mapper.name_resolver import NameResolver, UnresolvedName
 
-__version__ = "0.6.8"
+__version__ = "0.7.0"
 
 __all__ = [
     # Version
@@ -29,6 +30,7 @@ __all__ = [
     "graph",
     "graph_loader",
     "name_resolver",
+    "query_system",
     "status_checker",
     "type_inference",
     # Classes

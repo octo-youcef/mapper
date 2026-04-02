@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-04-01
+
+### Added
+- **Query system for risk detection** - Run CLI queries to identify code risks without Neo4j knowledge
+  - `mapper query list` - Discover available queries grouped by category
+  - `mapper query run <name> --package <pkg>` - Execute risk detection queries
+  - **3 initial queries**:
+    - `find-dead-code` - Unused functions/classes (risk: unused code)
+    - `analyze-module-centrality` - Most depended-on modules (risk: single points of failure)
+    - `find-critical-functions` - Most-called functions (risk: high blast radius)
+  - **Output formats**: table (default), JSON (`--json`), CSV (`--csv`)
+  - **Features**: Dynamic severity levels, summary statistics, configurable result limits
+  - **37 new unit tests** for query system (registry, executor, formatters, queries)
+  - Total tests: 151 unit tests passing, coverage 78%
+
+### Changed
+- CLI `query` commands updated from stubs to functional implementation
+- User journey documentation added: "Detecting Code Risks" (08-detecting-code-risks.md)
+- Interface documentation updated with query commands and reference
+- Package exports: Added `query_system` module to mapper.__all__
+
+### Documentation
+- **User journey**: `docs/user-journeys/08-detecting-code-risks.md`
+  - Step-by-step guide for running risk detection queries
+  - Examples of all 3 queries with interpretation guidance
+  - CI/CD integration examples
+- **Query reference**: `docs/interface/query-reference.md`
+  - Complete reference for all built-in queries
+  - Severity calculation details and risk descriptions
+  - Actions to take for each risk type
+- **CLI reference**: `docs/interface/cli.md` updated with query commands
+
 ## [0.6.8] - 2026-04-02
 
 ### Changed
