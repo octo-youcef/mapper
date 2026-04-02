@@ -10,7 +10,7 @@ Before starting, ensure you have:
 - **Docker and Docker Compose** installed and running
 - **uv** package manager installed ([installation guide](https://docs.astral.sh/uv/))
 - **just** task runner installed ([installation guide](https://github.com/casey/just))
-- Mapper repository cloned: `git clone git@github.com:octo-youcef/mapper.git`
+- Mapper repository cloned: `git clone git@github.com:ydkadri/mapper.git`
 
 ## Steps
 

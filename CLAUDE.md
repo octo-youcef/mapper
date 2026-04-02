@@ -333,6 +333,201 @@ raise ParseError(
 raise ParseError("Missing header")
 ```
 
+**Never catch bare `Exception`** - Always catch specific exceptions:
+
+```python
+# ✅ CORRECT - Catch specific exceptions
+try:
+    data = parse_file(path)
+except FileNotFoundError:
+    log.error("file_not_found", path=str(path))
+    raise
+except ParseError as e:
+    log.error("parsing_failed", path=str(path), error=str(e))
+    raise
+
+# ✅ CORRECT - Multiple specific exceptions
+try:
+    result = process_data(data)
+except (ValidationError, ParseError) as e:
+    log.error("data_processing_failed", error=str(e))
+    raise
+
+# ❌ INCORRECT - Too broad, catches everything including bugs
+try:
+    result = process_data(data)
+except Exception as e:  # Catches typos, AttributeErrors, etc.
+    log.error("something_failed", error=str(e))
+    raise
+```
+
+**Why this matters:**
+- Specific exceptions document what can go wrong
+- Forces you to think about error cases
+- Prevents hiding bugs (typos, attribute errors)
+- Makes debugging easier
+
+### Function and Method Ordering
+
+**Define functions and methods before they are called. Read top-to-bottom.**
+
+#### Module Level
+
+```python
+# ✅ CORRECT - Helper defined before use
+def format_timestamp(ts: datetime) -> str:
+    """Format timestamp for display."""
+    return ts.strftime("%Y-%m-%d %H:%M:%S")
+
+def process_log_entry(entry: dict) -> str:
+    """Process log entry."""
+    timestamp = format_timestamp(entry["timestamp"])
+    return f"{timestamp}: {entry['message']}"
+
+# ❌ INCORRECT - Helper used before definition
+def process_log_entry(entry: dict) -> str:
+    """Process log entry."""
+    timestamp = format_timestamp(entry["timestamp"])  # Not yet defined!
+    return f"{timestamp}: {entry['message']}"
+
+def format_timestamp(ts: datetime) -> str:
+    """Format timestamp for display."""
+    return ts.strftime("%Y-%m-%d %H:%M:%S")
+```
+
+#### Class Methods
+
+**Ordering within a class:**
+1. Private helper methods (including property builders)
+2. `__init__`
+3. Public methods
+
+```python
+# ✅ CORRECT - Private helpers before __init__ and public methods
+class Configuration:
+    """Application configuration."""
+
+    def _build_database_url(self, host: str, port: int, db: str) -> str:
+        """Build database connection URL."""
+        return f"postgresql://{host}:{port}/{db}"
+
+    def __init__(self, host: str, port: int, db: str):
+        self.db_url = self._build_database_url(host, port, db)
+
+    def connect(self) -> Connection:
+        """Connect to database."""
+        return create_connection(self.db_url)
+
+# ❌ INCORRECT - Private helper after __init__
+class Configuration:
+    """Application configuration."""
+
+    def __init__(self, host: str, port: int, db: str):
+        self.db_url = self._build_database_url(host, port, db)  # Not yet defined!
+
+    def _build_database_url(self, host: str, port: int, db: str) -> str:
+        """Build database connection URL."""
+        return f"postgresql://{host}:{port}/{db}"
+```
+
+**Why this matters:**
+- Read code naturally from top to bottom
+- Understand helpers before seeing them used
+- Easier to follow logic flow
+- Consistent with how code is reviewed
+
+### Enums for Domain Modeling
+
+**Use enums instead of string literals for states, types, and formats.**
+
+Enums provide type safety, validation, and enable pattern matching.
+
+**When to use enums:**
+- States and statuses (connection states, job statuses)
+- Types and formats (output formats, data types)
+- Fixed sets of options (priorities, categories)
+
+**Don't use for:**
+- Boolean flags (use actual booleans)
+- Arbitrary constants (use module-level constants)
+
+```python
+import enum
+
+# ✅ CORRECT - Enum for output formats
+class OutputFormat(enum.Enum):
+    JSON = "json"
+    CSV = "csv"
+    TABLE = "table"
+
+def format_results(data: list, format: OutputFormat) -> str:
+    match format:
+        case OutputFormat.JSON:
+            return json.dumps(data)
+        case OutputFormat.CSV:
+            return to_csv(data)
+        case OutputFormat.TABLE:
+            return to_table(data)
+
+# ❌ INCORRECT - String literals
+def format_results(data: list, format: str) -> str:  # format could be anything!
+    if format == "json":  # Typo: "jsno" would fail at runtime
+        return json.dumps(data)
+    elif format == "csv":
+        return to_csv(data)
+```
+
+**String-backed enums** for compatibility:
+
+```python
+# Python 3.10+ (use str mixin)
+class OutputFormat(str, enum.Enum):
+    JSON = "json"
+    CSV = "csv"
+    TABLE = "table"
+
+# Works with string operations
+format = OutputFormat.JSON
+print(f"Format: {format}")  # "Format: json"
+assert format == "json"  # True
+```
+
+**Benefits:**
+- Type safety: IDE and mypy catch typos at parse time
+- Pattern matching with match/case
+- Exhaustiveness checking (mypy warns if cases missing)
+- Self-documenting (all valid values in one place)
+
+### Context Managers
+
+**Always use context managers for resources:**
+- Files and file-like objects
+- Database connections and transactions
+- Network connections
+- Locks and synchronization primitives
+
+**Implementation** - Prefer `__enter__` and `__exit__` methods:
+
+```python
+class ResourceManager:
+    def __init__(self, resource_id: str):
+        self.resource_id = resource_id
+        self.resource = None
+
+    def __enter__(self):
+        self.resource = acquire_resource(self.resource_id)
+        return self.resource
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self.resource:
+            release_resource(self.resource)
+        return False  # Don't suppress exceptions
+
+# Usage
+with ResourceManager("db-conn") as resource:
+    resource.do_work()
+```
+
 ### String Formatting
 
 **Always use f-strings**:
@@ -1616,5 +1811,5 @@ just mapper [args]    # Run CLI tool
 
 ---
 
-**Last Updated**: 2026-03-31
-**Current Version**: 0.6.8
+**Last Updated**: 2026-04-02
+**Current Version**: 0.7.0
