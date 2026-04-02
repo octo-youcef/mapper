@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Query system Cypher syntax bug** - Fixed `find-dead-code` query using SQL syntax instead of Cypher
   - Changed `f.name NOT IN [...]` to `NOT f.name IN [...]` (line 40 in dead_code.py)
   - Would fail with "Invalid input 'NOT'" error when executed against Neo4j
+- **Import style violation in graph_loader** - Fixed to follow CLAUDE.md standards
+  - Changed `from mapper.graph import NodeLabel, RelationshipType` to `from mapper import graph`
+  - Updated all references to use `graph.NodeLabel` and `graph.RelationshipType`
+  - Aligns with Python style guide: import modules, not classes
 
 ### Added
 - **Query execution integration tests** - 10 new tests validating queries against real Neo4j
