@@ -37,7 +37,7 @@ class DeadCodeQuery(Query):
         MATCH (f {package: $package})
         WHERE (f:Function OR f:Method OR f:Class)
           AND NOT ()-[:CALLS]->(f)
-          AND f.name NOT IN ['main', '__init__', '__main__']
+          AND NOT f.name IN ['main', '__init__', '__main__']
           AND NOT f.name STARTS WITH 'test_'
         RETURN
           f.fqn as fqn,

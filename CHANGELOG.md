@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.3] - 2026-04-02
+
+### Fixed
+- **Query system Cypher syntax bug** - Fixed `find-dead-code` query using SQL syntax instead of Cypher
+  - Changed `f.name NOT IN [...]` to `NOT f.name IN [...]` (line 40 in dead_code.py)
+  - Would fail with "Invalid input 'NOT'" error when executed against Neo4j
+
+### Added
+- **Query execution integration tests** - 10 new tests validating queries against real Neo4j
+  - Tests all three built-in queries: find-dead-code, analyze-module-centrality, find-critical-functions
+  - Validates Cypher syntax, result structure, query logic, and edge cases
+  - Uses analyze-once pattern for fast execution (0.31s for all query tests)
+  - Total test count: 171 → 212 tests
+
+### Changed
+- **Dead code audit completed** - No dead code or placeholders found in codebase
+  - Searched for TODOs, FIXMEs, NotImplementedError stubs (none found)
+  - All modules actively used (e.g., setup_orchestrator powers `mapper init`)
+  - No stub implementations or placeholder functions
+
 ## [0.7.2] - 2026-04-02
 
 ### Changed
