@@ -1,7 +1,6 @@
 """Graph loader implementation."""
 
 from mapper import ast_parser, graph
-from mapper.graph import NodeLabel, RelationshipType
 
 
 class GraphLoader:
@@ -57,7 +56,7 @@ class GraphLoader:
             class_node_id = self._create_class_node(class_info, class_fqn)
             # DEFINES relationship: Module defines Class
             self.connection.create_relationship(
-                module_node_id, class_node_id, RelationshipType.DEFINES
+                module_node_id, class_node_id, graph.RelationshipType.DEFINES
             )
 
             # Create methods within class
@@ -66,7 +65,7 @@ class GraphLoader:
                 method_node_id = self._create_function_node(method, method_fqn, is_method=True)
                 # CONTAINS relationship: Class contains Method
                 self.connection.create_relationship(
-                    class_node_id, method_node_id, RelationshipType.CONTAINS
+                    class_node_id, method_node_id, graph.RelationshipType.CONTAINS
                 )
 
                 # Track method calls for later
@@ -85,7 +84,7 @@ class GraphLoader:
             func_node_id = self._create_function_node(func_info, func_fqn)
             # DEFINES relationship: Module defines Function
             self.connection.create_relationship(
-                module_node_id, func_node_id, RelationshipType.DEFINES
+                module_node_id, func_node_id, graph.RelationshipType.DEFINES
             )
 
             # Track function calls for later
@@ -137,21 +136,21 @@ class GraphLoader:
                 match rel_type:
                     case "inherits":
                         self.connection.create_relationship(
-                            from_id, to_id, RelationshipType.INHERITS
+                            from_id, to_id, graph.RelationshipType.INHERITS
                         )
                     case "calls":
-                        self.connection.create_relationship(from_id, to_id, RelationshipType.CALLS)
+                        self.connection.create_relationship(from_id, to_id, graph.RelationshipType.CALLS)
                     case "imports":
                         self.connection.create_relationship(
-                            from_id, to_id, RelationshipType.IMPORTS
+                            from_id, to_id, graph.RelationshipType.IMPORTS
                         )
                     case "from_module":
                         self.connection.create_relationship(
-                            from_id, to_id, RelationshipType.FROM_MODULE
+                            from_id, to_id, graph.RelationshipType.FROM_MODULE
                         )
                     case "depends_on":
                         self.connection.create_relationship(
-                            from_id, to_id, RelationshipType.DEPENDS_ON
+                            from_id, to_id, graph.RelationshipType.DEPENDS_ON
                         )
                     case _:
                         raise ValueError(f"Unknown relationship type: {rel_type}")
@@ -165,7 +164,7 @@ class GraphLoader:
                         external_node_id = existing_id
                     else:
                         external_node_id = self.connection.create_node(
-                            NodeLabel.MODULE,
+                            graph.NodeLabel.MODULE,
                             {"name": to_name, "package": to_name, "is_external": True},
                         )
 
@@ -175,11 +174,11 @@ class GraphLoader:
                 match rel_type:
                     case "from_module":
                         self.connection.create_relationship(
-                            from_id, external_node_id, RelationshipType.FROM_MODULE
+                            from_id, external_node_id, graph.RelationshipType.FROM_MODULE
                         )
                     case "depends_on":
                         self.connection.create_relationship(
-                            from_id, external_node_id, RelationshipType.DEPENDS_ON
+                            from_id, external_node_id, graph.RelationshipType.DEPENDS_ON
                         )
                     case _:
                         raise ValueError(f"Unknown relationship type: {rel_type}")
@@ -239,7 +238,7 @@ class GraphLoader:
         if module.docstring:
             properties["docstring"] = module.docstring
 
-        node_id = self.connection.create_node(NodeLabel.MODULE, properties)
+        node_id = self.connection.create_node(graph.NodeLabel.MODULE, properties)
         self._node_ids[fqn] = node_id
         return node_id
 
@@ -264,7 +263,7 @@ class GraphLoader:
         if class_info.bases:
             properties["bases"] = str(class_info.bases)  # Serialize for now
 
-        node_id = self.connection.create_node(NodeLabel.CLASS, properties)
+        node_id = self.connection.create_node(graph.NodeLabel.CLASS, properties)
         self._node_ids[fqn] = node_id
         return node_id
 
@@ -281,7 +280,7 @@ class GraphLoader:
         Returns:
             Node ID for created function
         """
-        label = NodeLabel.METHOD if is_method else NodeLabel.FUNCTION
+        label = graph.NodeLabel.METHOD if is_method else graph.NodeLabel.FUNCTION
         properties = {
             "name": func_info.name,
             "fqn": fqn,
@@ -329,11 +328,11 @@ class GraphLoader:
         if submodule_path:
             properties["submodule_path"] = submodule_path
 
-        import_node_id = self.connection.create_node(NodeLabel.IMPORT, properties)
+        import_node_id = self.connection.create_node(graph.NodeLabel.IMPORT, properties)
 
         # Create Module -[IMPORTS]-> Import relationship
         self.connection.create_relationship(
-            module_node_id, import_node_id, RelationshipType.IMPORTS
+            module_node_id, import_node_id, graph.RelationshipType.IMPORTS
         )
 
         # Track deferred FROM_MODULE relationship to external module
