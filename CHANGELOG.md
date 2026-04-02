@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.2] - 2026-04-02
+
+### Changed
+- **Streamlined feature implementation workflow** - Reduced review rounds through early alignment
+  - Added 5-phase workflow with 3 upfront checkpoints for early feedback
+  - Phase 1: Align on Approach (user journey) → Review
+  - Phase 2: Design Interface (API/CLI design) → Review
+  - Phase 3: Plan Implementation (commit structure, milestones in ROADMAP.md) → Review
+  - Phase 4: Implement Incrementally (push at planned milestones with explicit context)
+  - Phase 5: Finalize (self-validate, docs, version bump, rebase)
+  - Draft PRs with fixup commits during implementation for easier incremental review
+  - Clean rebase only before marking PR ready
+  - Explicit milestone review requests with context: "Milestone X complete: [what] - ready for review to [why]"
+  - Removed redundant "User Outcomes First" and "Interface First" sections (now incorporated into phases)
+
 ## [0.7.1] - 2026-04-02
 
 ### Changed
