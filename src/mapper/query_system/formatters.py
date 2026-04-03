@@ -12,8 +12,8 @@ from mapper.query_system import query, registry
 from mapper.query_system.query import Severity
 
 
-class Formatter(Protocol):
-    """Protocol for output formatters.
+class FormatsQueryResults(Protocol):
+    """Protocol for query result formatters.
 
     All formatters must implement format() to return a string representation
     of query results. This allows formatters to be used consistently across
@@ -224,7 +224,7 @@ class CSVFormatter:
         return output.getvalue()
 
 
-def get_formatter(format_type: str) -> Formatter:
+def get_formatter(format_type: str) -> FormatsQueryResults:
     """Get formatter for the specified format type.
 
     Args:
