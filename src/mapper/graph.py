@@ -4,7 +4,7 @@ from enum import Enum
 from typing import Any, Protocol
 
 from neo4j import GraphDatabase
-from neo4j.exceptions import ServiceUnavailable
+from neo4j.exceptions import AuthError, DatabaseError, DriverError, ServiceUnavailable
 
 from mapper import config_manager
 
@@ -78,8 +78,8 @@ class Neo4jConnection:
             return True, "Connection successful"
         except ServiceUnavailable as e:
             return False, f"Connection failed: {e}"
-        except Exception as e:
-            return False, f"Unexpected error: {e}"
+        except (AuthError, DatabaseError, DriverError) as e:
+            return False, f"Connection error: {e}"
 
     def create_database_if_not_exists(self) -> None:
         """Create database if it doesn't exist (idempotent).

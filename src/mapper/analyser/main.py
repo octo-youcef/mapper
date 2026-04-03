@@ -56,7 +56,7 @@ class Analyser:
                 self._analyse_file(file_path, result)
             except SyntaxError as e:
                 result.errors.append(f"{file_path.name}: {e}")
-            except Exception as e:
+            except (OSError, UnicodeDecodeError, RuntimeError) as e:
                 result.errors.append(f"{file_path.name}: {e}")
 
         # Finalize graph relationships if loader provided

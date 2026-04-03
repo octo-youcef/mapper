@@ -4,6 +4,7 @@ from pathlib import Path
 
 import attrs
 import tomli_w
+from neo4j.exceptions import DriverError
 
 from mapper import config_manager, graph
 
@@ -60,8 +61,8 @@ class SetupOrchestrator:
             )
             success, message = self.neo4j_connection.test_connection()
             return SetupResult(success=success, message=message)
-        except Exception as e:
-            return SetupResult(success=False, message=f"Unexpected error: {e}")
+        except (ValueError, DriverError) as e:
+            return SetupResult(success=False, message=f"Connection error: {e}")
 
     def create_database(self) -> SetupResult:
         """Create database if it doesn't exist.
@@ -81,7 +82,7 @@ class SetupOrchestrator:
                 success=True,
                 message=f"Database '{self.neo4j_connection.database}' ready",
             )
-        except Exception as e:
+        except DriverError as e:
             # Database creation might fail on Community Edition - that's OK
             return SetupResult(
                 success=False,
@@ -100,7 +101,7 @@ class SetupOrchestrator:
         try:
             self.neo4j_connection.initialize_database()
             return SetupResult(success=True, message="Database schema initialized")
-        except Exception as e:
+        except DriverError as e:
             return SetupResult(success=False, message=f"Failed to initialize: {e}")
 
     def create_config_file(
@@ -143,7 +144,7 @@ class SetupOrchestrator:
                     tomli_w.dump(config_data, f)
 
             return SetupResult(success=True, message=f"Config created at {config_path}")
-        except Exception as e:
+        except (OSError, PermissionError) as e:
             return SetupResult(success=False, message=f"Failed to create config: {e}")
 
     def close_connection(self) -> None:

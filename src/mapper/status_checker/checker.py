@@ -1,5 +1,12 @@
 """Status checker implementation."""
 
+try:
+    import tomllib
+except ModuleNotFoundError:
+    import tomli as tomllib  # type: ignore
+
+from neo4j.exceptions import DriverError
+
 from mapper import config_manager, graph
 from mapper.status_checker import models
 
@@ -111,7 +118,7 @@ class StatusChecker:
                     # Extract just the version number
                     if "/" in server_version:
                         server_version = server_version.split("/")[1]
-                except Exception:
+                except (AttributeError, DriverError):
                     server_version = "Unknown"
 
                 connection.close()
@@ -129,8 +136,15 @@ class StatusChecker:
                     connected=False, uri=uri, database=database, error_message=message
                 )
 
-        except Exception as e:
-            return models.ConnectionStatus(connected=False, error_message=f"Unexpected error: {e}")
+        except (
+            FileNotFoundError,
+            ValueError,
+            DriverError,
+            RuntimeError,
+            OSError,
+            tomllib.TOMLDecodeError,
+        ) as e:
+            return models.ConnectionStatus(connected=False, error_message=str(e))
 
     def _get_database_stats(self) -> models.DatabaseStats:
         """Get database statistics.
@@ -175,7 +189,7 @@ class StatusChecker:
                 relationships=relationships,
             )
 
-        except Exception:
+        except (ValueError, DriverError):
             # If stats fail, return zeros
             return models.DatabaseStats(
                 total_nodes=0, modules=0, classes=0, functions=0, relationships=0

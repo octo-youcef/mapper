@@ -51,7 +51,7 @@ def my_function():
 
         # Create mock connection that fails
         mock_connection = Mock()
-        mock_connection.create_node.side_effect = Exception("Neo4j connection failed")
+        mock_connection.create_node.side_effect = RuntimeError("Neo4j connection failed")
 
         # Create loader and analyser
         loader = graph_loader.GraphLoader(mock_connection, package_name="test-pkg")

@@ -3,6 +3,7 @@
 import sys
 
 import typer
+from neo4j.exceptions import DriverError
 from rich.console import Console
 
 from mapper import config_manager, graph
@@ -164,6 +165,6 @@ def run(
     except ValueError as e:
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(code=1) from None
-    except Exception as e:
-        console.print(f"[red]Unexpected error:[/red] {e}")
+    except (FileNotFoundError, OSError, DriverError) as e:
+        console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(code=1) from e

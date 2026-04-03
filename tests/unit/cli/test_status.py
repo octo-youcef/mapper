@@ -237,7 +237,7 @@ class TestStatusCommand:
 
         # Mock load_config to raise an exception
         with patch("mapper.status_checker.checker.config_manager.load_config") as mock_load:
-            mock_load.side_effect = Exception("Config parsing error")
+            mock_load.side_effect = RuntimeError("Config parsing error")
 
             result = runner.invoke(cli_app, ["status"])
 
