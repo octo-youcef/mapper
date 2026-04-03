@@ -2,8 +2,6 @@
 
 import json
 
-import pytest
-
 from mapper.query_system import formatters, query
 from mapper.query_system.query import Severity
 
@@ -127,20 +125,15 @@ class TestGetFormatter:
 
     def test_get_json_formatter(self):
         """Test getting JSON formatter."""
-        formatter = formatters.get_formatter("json")
+        formatter = formatters.get_formatter(formatters.OutputFormat.JSON)
         assert isinstance(formatter, formatters.JSONFormatter)
 
     def test_get_csv_formatter(self):
         """Test getting CSV formatter."""
-        formatter = formatters.get_formatter("csv")
+        formatter = formatters.get_formatter(formatters.OutputFormat.CSV)
         assert isinstance(formatter, formatters.CSVFormatter)
 
     def test_get_table_formatter(self):
         """Test getting table formatter."""
-        formatter = formatters.get_formatter("table")
+        formatter = formatters.get_formatter(formatters.OutputFormat.TABLE)
         assert isinstance(formatter, formatters.TableFormatter)
-
-    def test_get_unknown_formatter_raises(self):
-        """Test that unknown format type raises ValueError."""
-        with pytest.raises(ValueError, match="Unknown format type: unknown"):
-            formatters.get_formatter("unknown")

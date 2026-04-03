@@ -8,6 +8,7 @@ from rich.console import Console
 
 from mapper import config_manager, graph
 from mapper.query_system import executor, formatters, registry
+from mapper.query_system.formatters import OutputFormat
 
 console = Console()
 
@@ -96,7 +97,9 @@ def run(
     query_name: str,
     package: str = typer.Option(..., help="Package name to analyze"),
     limit: int = typer.Option(10, help="Maximum number of results to show (table format only)"),
-    format_type: str = typer.Option("table", "--format", help="Output format: table, json, csv"),
+    format_type: OutputFormat = typer.Option(
+        OutputFormat.TABLE, "--format", help="Output format: table, json, csv"
+    ),
     json_flag: bool = typer.Option(
         False, "--json", help="Output as JSON (shorthand for --format json)"
     ),
@@ -109,16 +112,9 @@ def run(
     Returns actionable results with severity levels and summary statistics.
     """
     # Resolve format (flags override --format option)
-    if json_flag:
-        format_type = "json"
-    elif csv_flag:
-        format_type = "csv"
-
-    # Validate format
-    if format_type not in ["table", "json", "csv"]:
-        console.print(f"[red]Invalid format: {format_type}[/red]")
-        console.print("Must be one of: table, json, csv")
-        raise typer.Exit(code=1)
+    output_format = (
+        OutputFormat.JSON if json_flag else OutputFormat.CSV if csv_flag else format_type
+    )
 
     try:
         # Get Neo4j credentials and config
@@ -146,18 +142,23 @@ def run(
         result = exec.execute(query_name, package)
 
         # Format and output
-        formatter = formatters.get_formatter(format_type)
-        output = formatter.format(result, limit=limit if format_type == "table" else None)
+        formatter = formatters.get_formatter(output_format)
+        output = formatter.format(
+            result, limit=limit if output_format == OutputFormat.TABLE else None
+        )
 
         # Print output
-        if format_type == "table":
-            # Rich table with colors - use console.print
-            console.print(output, end="")
-        else:
-            # Plain text - write to stdout
-            sys.stdout.write(output)
-            if format_type == "json":
+        match output_format:
+            case OutputFormat.TABLE:
+                # Rich table with colors - use console.print
+                console.print(output, end="")
+            case OutputFormat.JSON:
+                # JSON - write to stdout with newline
+                sys.stdout.write(output)
                 sys.stdout.write("\n")
+            case OutputFormat.CSV:
+                # CSV - write to stdout
+                sys.stdout.write(output)
 
         # Cleanup
         connection.close()

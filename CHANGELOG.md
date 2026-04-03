@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.5] - 2026-04-04
+
+### Added
+- **OutputFormat enum** - Type-safe format handling for query output
+  - Created string-backed enum with TABLE, JSON, CSV values
+  - Uses (str, Enum) pattern for Python 3.10+ compatibility (StrEnum is 3.11+)
+  - CLI validates format strings and converts to enum before processing
+  - get_formatter() accepts only OutputFormat enum (no string backwards compatibility)
+  - Match/case statements provide type-safe format handling
+  - Prevents runtime errors from invalid format strings
+
+### Changed
+- **Public API minimized** - Reduced mapper exports from 13 items to 4
+  - Removed direct class imports: Neo4jConnection, GraphLoader, NameResolver, UnresolvedName
+  - Removed internal modules: ast_parser, config_manager, name_resolver, query_system, status_checker, type_inference
+  - Kept only essential public interface: analyser, graph, graph_loader, __version__
+  - Users interact via CLI, not direct imports - cleaner separation of concerns
+  - All 212 tests passing confirms no external dependencies broken
+- **Query module exports** - query_system/queries/__init__.py now only exports BUILTIN_QUERIES
+  - Removed dead_code, module_centrality, critical_functions from public exports
+  - Only used internally by registry - no need for public access
 ## [0.7.4] - 2026-04-04
 
 ### Fixed

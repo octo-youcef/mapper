@@ -3,6 +3,7 @@
 import csv
 import io
 import json
+from enum import Enum
 from typing import Any, Protocol
 
 from rich.console import Console
@@ -10,6 +11,19 @@ from rich.table import Table
 
 from mapper.query_system import query, registry
 from mapper.query_system.query import Severity
+
+
+class OutputFormat(str, Enum):  # noqa: UP042
+    """Output format types for query results.
+
+    String-backed enum for compatibility with string operations while providing
+    type safety and validation. Uses (str, Enum) pattern for Python 3.10+ compatibility
+    (StrEnum is only available in Python 3.11+).
+    """
+
+    TABLE = "table"
+    JSON = "json"
+    CSV = "csv"
 
 
 class FormatsQueryResults(Protocol):
@@ -224,26 +238,19 @@ class CSVFormatter:
         return output.getvalue()
 
 
-def get_formatter(format_type: str) -> FormatsQueryResults:
+def get_formatter(format_type: OutputFormat) -> FormatsQueryResults:
     """Get formatter for the specified format type.
 
     Args:
-        format_type: Format type ("table", "json", or "csv")
+        format_type: Format type (OutputFormat enum)
 
     Returns:
         Appropriate formatter instance
-
-    Raises:
-        ValueError: If format type is unknown
     """
     match format_type:
-        case "table":
+        case OutputFormat.TABLE:
             return TableFormatter()
-        case "json":
+        case OutputFormat.JSON:
             return JSONFormatter()
-        case "csv":
+        case OutputFormat.CSV:
             return CSVFormatter()
-        case _:
-            raise ValueError(
-                f"Unknown format type: {format_type}. Must be 'table', 'json', or 'csv'"
-            )
