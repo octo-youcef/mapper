@@ -393,6 +393,100 @@ class TestGraphLoader:
         assert param3["type_hint"] is None
         assert param3["kind"] == "VAR_POSITIONAL"
 
+    def test_load_function_with_decorators(self):
+        """Test that decorators are stored as Decorator nodes with DECORATED_WITH relationships."""
+        mock_connection = Mock()
+        mock_connection.create_node.side_effect = lambda *args, **kwargs: (
+            f"node_{len(mock_connection.create_node.call_args_list)}"
+        )
+        loader = graph_loader.GraphLoader(mock_connection, package_name="test-pkg")
+
+        module_info = ast_parser.models.ModuleInfo(path="test.py", name="test")
+        func_info = ast_parser.models.FunctionInfo(
+            name="decorated_function",
+            is_public=True,
+            decorators=[
+                ast_parser.models.DecoratorInfo(
+                    name="property", args=None, full_text="@property"
+                ),
+                ast_parser.models.DecoratorInfo(
+                    name="rate_limit", args="10", full_text="@rate_limit(10)"
+                ),
+            ],
+        )
+        extraction = ast_parser.models.ExtractionResult(module=module_info, functions=[func_info])
+
+        loader.load_extraction(extraction)
+
+        # Should create: Module node + Function node + 2 Decorator nodes = 4 nodes
+        assert mock_connection.create_node.call_count == 4
+
+        # Verify Decorator nodes were created
+        decorator_nodes = [
+            call for call in mock_connection.create_node.call_args_list if call[0][0] == "Decorator"
+        ]
+        assert len(decorator_nodes) == 2
+
+        # Verify first decorator
+        decorator1_props = decorator_nodes[0][0][1]
+        assert decorator1_props["name"] == "property"
+        assert "args" not in decorator1_props
+        assert decorator1_props["full_text"] == "@property"
+
+        # Verify second decorator
+        decorator2_props = decorator_nodes[1][0][1]
+        assert decorator2_props["name"] == "rate_limit"
+        assert decorator2_props["args"] == "10"
+        assert decorator2_props["full_text"] == "@rate_limit(10)"
+
+        # Verify DECORATED_WITH relationships were created
+        decorated_with_rels = [
+            call
+            for call in mock_connection.create_relationship.call_args_list
+            if len(call[0]) >= 3 and call[0][2] == "DECORATED_WITH"
+        ]
+        assert len(decorated_with_rels) == 2
+
+    def test_load_class_with_decorators(self):
+        """Test that class decorators are stored as Decorator nodes."""
+        mock_connection = Mock()
+        mock_connection.create_node.side_effect = lambda *args, **kwargs: (
+            f"node_{len(mock_connection.create_node.call_args_list)}"
+        )
+        loader = graph_loader.GraphLoader(mock_connection, package_name="test-pkg")
+
+        module_info = ast_parser.models.ModuleInfo(path="test.py", name="test")
+        class_info = ast_parser.models.ClassInfo(
+            name="MyClass",
+            is_public=True,
+            decorators=[
+                ast_parser.models.DecoratorInfo(
+                    name="dataclass", args=None, full_text="@dataclass"
+                )
+            ],
+        )
+        extraction = ast_parser.models.ExtractionResult(module=module_info, classes=[class_info])
+
+        loader.load_extraction(extraction)
+
+        # Should create: Module + Class + Decorator = 3 nodes
+        assert mock_connection.create_node.call_count == 3
+
+        # Verify Decorator node was created
+        decorator_nodes = [
+            call for call in mock_connection.create_node.call_args_list if call[0][0] == "Decorator"
+        ]
+        assert len(decorator_nodes) == 1
+        assert decorator_nodes[0][0][1]["name"] == "dataclass"
+
+        # Verify DECORATED_WITH relationship
+        decorated_with_rels = [
+            call
+            for call in mock_connection.create_relationship.call_args_list
+            if len(call[0]) >= 3 and call[0][2] == "DECORATED_WITH"
+        ]
+        assert len(decorated_with_rels) == 1
+
     def test_load_class_with_methods(self):
         """Test loading a class with methods."""
         mock_connection = Mock()

@@ -17,6 +17,7 @@ class NodeLabel(str, Enum):  # noqa: UP042 - str,Enum for Python 3.10 compatibil
     FUNCTION = "Function"
     METHOD = "Method"
     IMPORT = "Import"
+    DECORATOR = "Decorator"
 
 
 class RelationshipType(str, Enum):  # noqa: UP042 - str,Enum for Python 3.10 compatibility
@@ -29,6 +30,7 @@ class RelationshipType(str, Enum):  # noqa: UP042 - str,Enum for Python 3.10 com
     IMPORTS = "IMPORTS"
     FROM_MODULE = "FROM_MODULE"
     DEPENDS_ON = "DEPENDS_ON"
+    DECORATED_WITH = "DECORATED_WITH"
 
 
 class StoresGraph(Protocol):

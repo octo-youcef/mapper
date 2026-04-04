@@ -269,6 +269,11 @@ class GraphLoader:
 
         node_id = self.connection.create_node(graph.NodeLabel.CLASS, properties)
         self._node_ids[fqn] = node_id
+
+        # Create Decorator nodes and DECORATED_WITH relationships
+        if class_info.decorators:
+            self._create_decorator_nodes(node_id, class_info.decorators)
+
         return node_id
 
     def _create_function_node(
@@ -295,8 +300,6 @@ class GraphLoader:
             properties["docstring"] = func_info.docstring
         if func_info.return_type:
             properties["return_type"] = func_info.return_type
-        if func_info.decorators:
-            properties["decorators"] = str(func_info.decorators)  # Serialize for now
 
         # Handle parameters separately - Neo4j needs special handling for arrays of maps
         parameters_list = None
@@ -305,6 +308,11 @@ class GraphLoader:
 
         node_id = self._create_node_with_parameters(label, properties, parameters_list)
         self._node_ids[fqn] = node_id
+
+        # Create Decorator nodes and DECORATED_WITH relationships
+        if func_info.decorators:
+            self._create_decorator_nodes(node_id, func_info.decorators)
+
         return node_id
 
     def _create_node_with_parameters(
@@ -350,6 +358,35 @@ class GraphLoader:
             "position": param.position,
             "kind": param.kind,
         }
+
+    def _create_decorator_nodes(
+        self, entity_node_id: str, decorators: list[ast_parser.models.DecoratorInfo]
+    ) -> None:
+        """Create Decorator nodes and DECORATED_WITH relationships.
+
+        Args:
+            entity_node_id: Node ID of the decorated entity (Function/Method/Class)
+            decorators: List of DecoratorInfo objects
+        """
+        for decorator in decorators:
+            # Create Decorator node
+            properties = {
+                "name": decorator.name,
+                "package": self.package_name,
+            }
+            if decorator.args:
+                properties["args"] = decorator.args
+            if decorator.full_text:
+                properties["full_text"] = decorator.full_text
+
+            decorator_node_id = self.connection.create_node(
+                graph.NodeLabel.DECORATOR, properties
+            )
+
+            # Create DECORATED_WITH relationship: Entity -[DECORATED_WITH]-> Decorator
+            self.connection.create_relationship(
+                entity_node_id, decorator_node_id, graph.RelationshipType.DECORATED_WITH
+            )
 
     def _create_single_import_node(
         self,
