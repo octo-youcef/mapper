@@ -92,16 +92,18 @@ class TestGraphLoader:
 
         loader.load_extraction(extraction)
 
-        # Should create module node (create_node), function node (create_node_with_list_property), and DEFINES relationship
-        assert mock_connection.create_node.call_count == 1  # Module only
-        assert (
-            mock_connection.create_node_with_list_property.call_count == 1
-        )  # Function with parameters
-        assert mock_connection.create_relationship.call_count >= 1
+        # Should create: Module node, Function node, Parameter node
+        assert mock_connection.create_node.call_count == 3  # Module, Function, Parameter
+        # Should create: Module DEFINES Function, Function HAS_PARAMETER Parameter
+        assert mock_connection.create_relationship.call_count == 2
 
-        # Verify function node created with parameters
-        func_call = mock_connection.create_node_with_list_property.call_args_list[0]
+        # Verify function node created
+        func_call = mock_connection.create_node.call_args_list[1]  # Second create_node call
         assert func_call[0][0].value == "Function"  # NodeLabel enum
+
+        # Verify parameter node created
+        param_call = mock_connection.create_node.call_args_list[2]  # Third create_node call
+        assert param_call[0][0].value == "Parameter"
         properties = func_call[0][1]
         assert properties["name"] == "my_function"
         assert properties["return_type"] == "int"
@@ -362,36 +364,36 @@ class TestGraphLoader:
 
         loader.load_extraction(extraction)
 
-        # Verify function node has structured parameters
-        func_call = mock_connection.create_node_with_list_property.call_args_list[0]
-        # Args: (label, properties, list_property_name, list_value)
-        parameters_list = func_call[0][3]  # Fourth argument is the list
+        # Should create: Module node, Function node, 3 Parameter nodes
+        assert mock_connection.create_node.call_count == 5  # Module + Function + 3 Parameters
+        # Should create: Module DEFINES Function + 3 HAS_PARAMETER relationships
+        assert mock_connection.create_relationship.call_count == 4
 
-        # Parameters should be a list of dicts, not a string
-        assert isinstance(parameters_list, list)
-        assert len(parameters_list) == 3
+        # Verify Parameter nodes were created with correct properties
+        # First parameter (pos_arg) - call_args_list[2]
+        param1_call = mock_connection.create_node.call_args_list[2]
+        param1_props = param1_call[0][1]
+        assert param1_props["name"] == "pos_arg"
+        assert param1_props["type_hint"] == "str"
+        assert param1_props["has_type_hint"] is True
+        assert param1_props["position"] == 0
+        assert param1_props["kind"] == "POSITIONAL_OR_KEYWORD"
+        assert "default" not in param1_props  # No default value
 
-        # Verify first parameter structure
-        param1 = parameters_list[0]
-        assert param1["name"] == "pos_arg"
-        assert param1["type_hint"] == "str"
-        assert param1["has_type_hint"] is True
-        assert param1["default"] is None
-        assert param1["position"] == 0
-        assert param1["kind"] == "POSITIONAL_OR_KEYWORD"
+        # Second parameter (kw_arg) - call_args_list[3]
+        param2_call = mock_connection.create_node.call_args_list[3]
+        param2_props = param2_call[0][1]
+        assert param2_props["name"] == "kw_arg"
+        assert param2_props["type_hint"] == "int"
+        assert param2_props["default"] == "42"
+        assert param2_props["kind"] == "KEYWORD_ONLY"
 
-        # Verify second parameter (keyword-only with default)
-        param2 = parameters_list[1]
-        assert param2["name"] == "kw_arg"
-        assert param2["type_hint"] == "int"
-        assert param2["default"] == "42"
-        assert param2["kind"] == "KEYWORD_ONLY"
-
-        # Verify third parameter (*args)
-        param3 = parameters_list[2]
-        assert param3["name"] == "args"
-        assert param3["type_hint"] is None
-        assert param3["kind"] == "VAR_POSITIONAL"
+        # Third parameter (args) - call_args_list[4]
+        param3_call = mock_connection.create_node.call_args_list[4]
+        param3_props = param3_call[0][1]
+        assert param3_props["name"] == "args"
+        assert param3_props["kind"] == "VAR_POSITIONAL"
+        assert "type_hint" not in param3_props  # No type hint
 
     def test_load_function_with_decorators(self):
         """Test that decorators are stored as Decorator nodes with DECORATED_WITH relationships."""

@@ -116,9 +116,10 @@ class MyClass:
 
         # Find functions with exactly 2 parameters
         query = """
-        MATCH (f:Function {package: $package})
-        WHERE size(f.parameters) = 2
-        RETURN f.name as name, size(f.parameters) as param_count
+        MATCH (f:Function {package: $package})-[:HAS_PARAMETER]->(p:Parameter)
+        WITH f, count(p) as param_count
+        WHERE param_count = 2
+        RETURN f.name as name, param_count
         ORDER BY name
         """
         with connection.driver.session(database=connection.database) as session:
@@ -136,11 +137,9 @@ class MyClass:
 
         # Find all parameters that have defaults
         query = """
-        MATCH (f:Function {package: $package})
-        UNWIND f.parameters as param
-        WITH f, param
-        WHERE param.default IS NOT NULL
-        RETURN f.name as function_name, param.name as param_name, param.default as default_value
+        MATCH (f:Function {package: $package})-[:HAS_PARAMETER]->(p:Parameter)
+        WHERE p.default IS NOT NULL
+        RETURN f.name as function_name, p.name as param_name, p.default as default_value
         ORDER BY function_name, param_name
         """
         with connection.driver.session(database=connection.database) as session:
@@ -171,10 +170,8 @@ class MyClass:
 
         # Find functions with keyword-only parameters
         query = """
-        MATCH (f:Function {package: $package})
-        UNWIND f.parameters as param
-        WITH f, param
-        WHERE param.kind = 'KEYWORD_ONLY'
+        MATCH (f:Function {package: $package})-[:HAS_PARAMETER]->(p:Parameter)
+        WHERE p.kind = 'KEYWORD_ONLY'
         RETURN DISTINCT f.name as name
         ORDER BY name
         """
@@ -193,11 +190,9 @@ class MyClass:
 
         # Find functions with VAR_POSITIONAL (*args)
         query = """
-        MATCH (f:Function {package: $package})
-        UNWIND f.parameters as param
-        WITH f, param
-        WHERE param.kind = 'VAR_POSITIONAL'
-        RETURN f.name as name, param.name as param_name
+        MATCH (f:Function {package: $package})-[:HAS_PARAMETER]->(p:Parameter)
+        WHERE p.kind = 'VAR_POSITIONAL'
+        RETURN f.name as name, p.name as param_name
         ORDER BY name
         """
         with connection.driver.session(database=connection.database) as session:
@@ -218,11 +213,9 @@ class MyClass:
 
         # Find functions with VAR_KEYWORD (**kwargs)
         query = """
-        MATCH (f:Function {package: $package})
-        UNWIND f.parameters as param
-        WITH f, param
-        WHERE param.kind = 'VAR_KEYWORD'
-        RETURN f.name as name, param.name as param_name
+        MATCH (f:Function {package: $package})-[:HAS_PARAMETER]->(p:Parameter)
+        WHERE p.kind = 'VAR_KEYWORD'
+        RETURN f.name as name, p.name as param_name
         ORDER BY name
         """
         with connection.driver.session(database=connection.database) as session:
@@ -243,11 +236,9 @@ class MyClass:
 
         # Find parameters that have type hints
         query = """
-        MATCH (f:Function {package: $package})
-        UNWIND f.parameters as param
-        WITH f, param
-        WHERE param.has_type_hint = true
-        RETURN f.name as function_name, param.name as param_name, param.type_hint as type_hint
+        MATCH (f:Function {package: $package})-[:HAS_PARAMETER]->(p:Parameter)
+        WHERE p.has_type_hint = true
+        RETURN f.name as function_name, p.name as param_name, p.type_hint as type_hint
         ORDER BY function_name, param_name
         """
         with connection.driver.session(database=connection.database) as session:
@@ -289,11 +280,9 @@ class MyClass:
 
         # Find all first parameters (position 0)
         query = """
-        MATCH (f:Function {package: $package})
-        UNWIND f.parameters as param
-        WITH f, param
-        WHERE param.position = 0
-        RETURN f.name as function_name, param.name as param_name
+        MATCH (f:Function {package: $package})-[:HAS_PARAMETER]->(p:Parameter)
+        WHERE p.position = 0
+        RETURN f.name as function_name, p.name as param_name
         ORDER BY function_name
         """
         with connection.driver.session(database=connection.database) as session:
@@ -429,10 +418,8 @@ class MyClass:
 
         # Find functions with defaults but no type hints on those params
         query = """
-        MATCH (f:Function {package: $package})
-        UNWIND f.parameters as param
-        WITH f, param
-        WHERE param.default IS NOT NULL AND param.has_type_hint = false
+        MATCH (f:Function {package: $package})-[:HAS_PARAMETER]->(p:Parameter)
+        WHERE p.default IS NOT NULL AND p.has_type_hint = false
         RETURN DISTINCT f.name as name
         ORDER BY name
         """

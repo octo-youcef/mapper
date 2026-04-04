@@ -301,13 +301,13 @@ class GraphLoader:
         if func_info.return_type:
             properties["return_type"] = func_info.return_type
 
-        # Handle parameters separately - Neo4j needs special handling for arrays of maps
-        parameters_list = None
-        if func_info.parameters:
-            parameters_list = [self._parameter_to_dict(param) for param in func_info.parameters]
-
-        node_id = self._create_node_with_parameters(label, properties, parameters_list)
+        # Create the function/method node
+        node_id = self.connection.create_node(label, properties)
         self._node_ids[fqn] = node_id
+
+        # Create Parameter nodes and HAS_PARAMETER relationships
+        if func_info.parameters:
+            self._create_parameter_nodes(node_id, func_info.parameters)
 
         # Create Decorator nodes and DECORATED_WITH relationships
         if func_info.decorators:
@@ -315,49 +315,39 @@ class GraphLoader:
 
         return node_id
 
-    def _create_node_with_parameters(
-        self, label: graph.NodeLabel, properties: dict, parameters: list[dict] | None
-    ) -> str:
-        """Create a node with optional parameters array.
+    def _create_parameter_nodes(
+        self, function_node_id: str, parameters: list[ast_parser.models.ParameterInfo]
+    ) -> None:
+        """Create Parameter nodes and HAS_PARAMETER relationships.
 
         Args:
-            label: Node label
-            properties: Node properties (excluding parameters)
-            parameters: Optional list of parameter dicts
-
-        Returns:
-            Node element ID
+            function_node_id: Node ID of the function/method that has these parameters
+            parameters: List of ParameterInfo objects
         """
-        if parameters:
-            return self.connection.create_node_with_list_property(
-                label, properties, "parameters", parameters
+        for param in parameters:
+            # Create Parameter node with all properties
+            param_properties = {
+                "name": param.name,
+                "position": param.position,
+                "kind": param.kind.value,  # Convert enum to string value
+                "has_type_hint": param.has_type_hint,
+                "package": self.package_name,
+            }
+            # Add optional properties if they exist
+            if param.type_hint:
+                param_properties["type_hint"] = param.type_hint
+            if param.default:
+                param_properties["default"] = param.default
+
+            param_node_id = self.connection.create_node(graph.NodeLabel.PARAMETER, param_properties)
+
+            # Create HAS_PARAMETER relationship with position in relationship properties
+            self.connection.create_relationship(
+                function_node_id,
+                param_node_id,
+                graph.RelationshipType.HAS_PARAMETER,
+                {"position": param.position},
             )
-        else:
-            return self.connection.create_node(label, properties)
-
-    @staticmethod
-    def _parameter_to_dict(param: ast_parser.models.ParameterInfo) -> dict:
-        """Convert ParameterInfo to dict for Neo4j storage.
-
-        Note: We don't use attrs.asdict() because it doesn't convert enum values
-        to strings by default. ParameterKind enum needs to be serialized as a string
-        for Neo4j storage. Using manual dict construction is clearer and more explicit
-        for this enum handling case.
-
-        Args:
-            param: Parameter information
-
-        Returns:
-            Dictionary with parameter properties
-        """
-        return {
-            "name": param.name,
-            "type_hint": param.type_hint,
-            "has_type_hint": param.has_type_hint,
-            "default": param.default,
-            "position": param.position,
-            "kind": param.kind.value,  # Convert enum to its string value
-        }
 
     def _create_decorator_nodes(
         self, entity_node_id: str, decorators: list[ast_parser.models.DecoratorInfo]

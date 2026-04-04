@@ -18,6 +18,7 @@ class NodeLabel(str, Enum):  # noqa: UP042 - str,Enum for Python 3.10 compatibil
     METHOD = "Method"
     IMPORT = "Import"
     DECORATOR = "Decorator"
+    PARAMETER = "Parameter"
 
 
 class RelationshipType(str, Enum):  # noqa: UP042 - str,Enum for Python 3.10 compatibility
@@ -31,6 +32,7 @@ class RelationshipType(str, Enum):  # noqa: UP042 - str,Enum for Python 3.10 com
     FROM_MODULE = "FROM_MODULE"
     DEPENDS_ON = "DEPENDS_ON"
     DECORATED_WITH = "DECORATED_WITH"
+    HAS_PARAMETER = "HAS_PARAMETER"
 
 
 class StoresGraph(Protocol):
@@ -145,63 +147,6 @@ class Neo4jConnection:
             # Create node with properties
             props_str = ", ".join(f"{k}: ${k}" for k in properties.keys())
             query = f"CREATE (n:{label.value} {{{props_str}}}) RETURN elementId(n) as node_id"
-            result = session.run(query, parameters=properties)
-            record = result.single()
-            return str(record["node_id"]) if record else ""
-
-    def create_node_with_list_property(
-        self,
-        label: NodeLabel,
-        properties: dict[str, Any],
-        list_property: str,
-        list_value: list[dict],
-    ) -> str:
-        """Create a node with a list of maps property.
-
-        Neo4j doesn't support arrays of maps when passed through driver parameters,
-        so we construct them inline in the Cypher query.
-
-        Args:
-            label: Node label
-            properties: Simple properties (will be passed as parameters)
-            list_property: Name of the property that will contain the list
-            list_value: List of dicts to store
-
-        Returns:
-            Node element ID
-        """
-        with self.driver.session(database=self.database) as session:
-            # Build properties string
-            props_parts = [f"{k}: ${k}" for k in properties.keys()]
-
-            # Convert list of dicts to Cypher syntax
-            cypher_maps = []
-            for item in list_value:
-                pairs = []
-                for k, v in item.items():
-                    if v is None:
-                        pairs.append(f"{k}: null")
-                    elif isinstance(v, bool):
-                        pairs.append(f"{k}: {str(v).lower()}")
-                    elif isinstance(v, (int, float)):
-                        pairs.append(f"{k}: {v}")
-                    else:
-                        # String - escape and quote
-                        escaped = str(v).replace("\\", "\\\\").replace("'", "\\'")
-                        pairs.append(f"{k}: '{escaped}'")
-                cypher_maps.append("{" + ", ".join(pairs) + "}")
-
-            list_cypher = "[" + ", ".join(cypher_maps) + "]"
-            props_parts.append(f"{list_property}: {list_cypher}")
-
-            props_str = ", ".join(props_parts)
-            query = f"CREATE (n:{label.value} {{{props_str}}}) RETURN elementId(n) as node_id"
-
-            # Debug: print query to see what we're sending to Neo4j
-            import sys
-            print(f"DEBUG: Cypher query:\n{query}", file=sys.stderr)
-            print(f"DEBUG: Parameters: {properties}", file=sys.stderr)
-
             result = session.run(query, parameters=properties)
             record = result.single()
             return str(record["node_id"]) if record else ""
