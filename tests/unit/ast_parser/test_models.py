@@ -1,5 +1,7 @@
 """Unit tests for AST parser models."""
 
+import inspect
+
 import pytest
 
 from mapper.ast_parser import models
@@ -10,11 +12,16 @@ class TestParameterKind:
 
     def test_enum_values_match_python_inspect(self):
         """ParameterKind values should match Python's inspect.Parameter.kind."""
-        assert models.ParameterKind.POSITIONAL_ONLY.value == "POSITIONAL_ONLY"
-        assert models.ParameterKind.POSITIONAL_OR_KEYWORD.value == "POSITIONAL_OR_KEYWORD"
-        assert models.ParameterKind.VAR_POSITIONAL.value == "VAR_POSITIONAL"
-        assert models.ParameterKind.KEYWORD_ONLY.value == "KEYWORD_ONLY"
-        assert models.ParameterKind.VAR_KEYWORD.value == "VAR_KEYWORD"
+        # Compare our enum values against Python's inspect.Parameter kind enum
+        our_kinds = {kind.value for kind in models.ParameterKind}
+        inspect_kinds = {
+            inspect.Parameter.POSITIONAL_ONLY.name,
+            inspect.Parameter.POSITIONAL_OR_KEYWORD.name,
+            inspect.Parameter.VAR_POSITIONAL.name,
+            inspect.Parameter.KEYWORD_ONLY.name,
+            inspect.Parameter.VAR_KEYWORD.name,
+        }
+        assert our_kinds == inspect_kinds
 
     def test_enum_is_string(self):
         """ParameterKind should inherit from str for serialization."""

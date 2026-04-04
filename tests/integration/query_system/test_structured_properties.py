@@ -22,6 +22,10 @@ class TestStructuredPropertiesQueries:
     @pytest.fixture(scope="class", autouse=True)
     def analyzed_fixture(self, neo4j_connection, tmp_path_factory):
         """Create and analyze test code with structured properties."""
+        # TODO(0.8.1): Move this test code to sample_projects/ and load from there
+        # instead of writing inline. This will make the test data reusable and easier
+        # to maintain.
+
         # Create temporary directory for test code
         test_dir = tmp_path_factory.mktemp("structured_props")
         test_file = test_dir / "sample.py"

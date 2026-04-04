@@ -1,4 +1,20 @@
-"""Name resolution for Python code."""
+"""Name resolution for Python code.
+
+Note on Decorator Name Resolution:
+    Decorator name resolution is currently disabled because DecoratorInfo is an immutable
+    (frozen=True) attrs class. To resolve decorator names, we would need to create new
+    DecoratorInfo instances with updated names, which adds complexity.
+
+    Current behavior:
+    - Decorator names are stored exactly as they appear in source code
+    - No FQN resolution is performed (e.g., @dataclass stays as "dataclass", not "attrs.define")
+    - This is acceptable because decorators are stored as structured nodes in Neo4j with full_text
+
+    If FQN resolution becomes necessary:
+    - Create new DecoratorInfo instances with resolved names during extraction result processing
+    - Preserve original names in full_text for reference
+    - Update tests in test_name_resolver/test_resolver.py to verify decorator resolution
+"""
 
 from mapper.ast_parser import models as ast_models
 from mapper.name_resolver import models

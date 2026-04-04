@@ -212,15 +212,20 @@ class ASTExtractor:
         for arg in args.posonlyargs:
             type_hint = self._get_type_string(arg.annotation) if arg.annotation else None
 
-            # Get default value if exists (defaults are right-aligned with parameters)
-            # For def f(a, b, c=1, d=2, /): defaults=[1, 2] applies to params c and d
-            # Calculate offset: if 4 params and 2 defaults, offset=2, so params at index 2+ have defaults
+            # Extract default value if parameter has one
+            # Python's AST stores defaults right-aligned: if 4 params and 2 defaults,
+            # defaults=[1, 2] applies to the last 2 params (indices 2 and 3).
+            # Example: def f(a, b, c=1, d=2, /):
+            #   - posonlyargs = [a, b, c, d]  (4 params)
+            #   - defaults = [1, 2]           (2 defaults)
+            #   - default_offset = 4 - 2 = 2  (defaults start at index 2)
+            #   - param at index 2 (c) gets defaults[0], param at index 3 (d) gets defaults[1]
             default = None
             default_offset = len(args.posonlyargs) - len(args.defaults)
             param_index = args.posonlyargs.index(arg)
             if param_index >= default_offset and args.defaults:
                 default_node = args.defaults[param_index - default_offset]
-                default = ast.unparse(default_node)
+                default = ast.unparse(default_node)  # Convert AST node to source code string
 
             parameters.append(
                 models.ParameterInfo(
