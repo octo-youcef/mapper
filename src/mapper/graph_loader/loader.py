@@ -295,14 +295,61 @@ class GraphLoader:
             properties["docstring"] = func_info.docstring
         if func_info.return_type:
             properties["return_type"] = func_info.return_type
-        if func_info.parameters:
-            properties["parameters"] = str(func_info.parameters)  # Serialize for now
         if func_info.decorators:
             properties["decorators"] = str(func_info.decorators)  # Serialize for now
 
-        node_id = self.connection.create_node(label, properties)
+        # Handle parameters separately - Neo4j needs special handling for arrays of maps
+        parameters_list = None
+        if func_info.parameters:
+            parameters_list = [self._parameter_to_dict(param) for param in func_info.parameters]
+
+        node_id = self._create_node_with_parameters(label, properties, parameters_list)
         self._node_ids[fqn] = node_id
         return node_id
+
+    def _create_node_with_parameters(
+        self, label: graph.NodeLabel, properties: dict, parameters: list[dict] | None
+    ) -> str:
+        """Create a node with optional parameters array.
+
+        Args:
+            label: Node label
+            properties: Node properties (excluding parameters)
+            parameters: Optional list of parameter dicts
+
+        Returns:
+            Node element ID
+        """
+        if parameters:
+            return self.connection.create_node_with_list_property(
+                label, properties, "parameters", parameters
+            )
+        else:
+            return self.connection.create_node(label, properties)
+
+    @staticmethod
+    def _parameter_to_dict(param: ast_parser.models.ParameterInfo) -> dict:
+        """Convert ParameterInfo to dict for Neo4j storage.
+
+        Note: We don't use attrs.asdict() because it doesn't convert enum values
+        to strings by default. ParameterKind enum needs to be serialized as a string
+        for Neo4j storage. Using manual dict construction is clearer and more explicit
+        for this enum handling case.
+
+        Args:
+            param: Parameter information
+
+        Returns:
+            Dictionary with parameter properties
+        """
+        return {
+            "name": param.name,
+            "type_hint": param.type_hint,
+            "has_type_hint": param.has_type_hint,
+            "default": param.default,
+            "position": param.position,
+            "kind": param.kind,
+        }
 
     def _create_single_import_node(
         self,

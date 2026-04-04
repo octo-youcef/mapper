@@ -76,20 +76,32 @@ class TestGraphLoader:
             name="my_function",
             is_public=True,
             docstring="My function",
-            parameters=[{"name": "arg1", "type": "str"}],
+            parameters=[
+                ast_parser.models.ParameterInfo(
+                    name="arg1",
+                    type_hint="str",
+                    has_type_hint=True,
+                    default=None,
+                    position=0,
+                    kind=ast_parser.models.ParameterKind.POSITIONAL_OR_KEYWORD,
+                )
+            ],
             return_type="int",
         )
         extraction = ast_parser.models.ExtractionResult(module=module_info, functions=[func_info])
 
         loader.load_extraction(extraction)
 
-        # Should create module node, function node, and DEFINES relationship
-        assert mock_connection.create_node.call_count == 2
+        # Should create module node (create_node), function node (create_node_with_list_property), and DEFINES relationship
+        assert mock_connection.create_node.call_count == 1  # Module only
+        assert (
+            mock_connection.create_node_with_list_property.call_count == 1
+        )  # Function with parameters
         assert mock_connection.create_relationship.call_count >= 1
 
-        # Verify function node
-        func_call = mock_connection.create_node.call_args_list[1]
-        assert func_call[0][0] == "Function"
+        # Verify function node created with parameters
+        func_call = mock_connection.create_node_with_list_property.call_args_list[0]
+        assert func_call[0][0].value == "Function"  # NodeLabel enum
         properties = func_call[0][1]
         assert properties["name"] == "my_function"
         assert properties["return_type"] == "int"
@@ -309,6 +321,77 @@ class TestGraphLoader:
         assert len(depends_on_rels) == 2, (
             "Should create two DEPENDS_ON relationships (one per module)"
         )
+
+    def test_load_function_with_structured_parameters(self):
+        """Test that parameters are stored as structured arrays, not strings."""
+        mock_connection = Mock()
+        loader = graph_loader.GraphLoader(mock_connection, package_name="test-pkg")
+
+        module_info = ast_parser.models.ModuleInfo(path="test.py", name="test")
+        func_info = ast_parser.models.FunctionInfo(
+            name="complex_function",
+            is_public=True,
+            parameters=[
+                ast_parser.models.ParameterInfo(
+                    name="pos_arg",
+                    type_hint="str",
+                    has_type_hint=True,
+                    default=None,
+                    position=0,
+                    kind=ast_parser.models.ParameterKind.POSITIONAL_OR_KEYWORD,
+                ),
+                ast_parser.models.ParameterInfo(
+                    name="kw_arg",
+                    type_hint="int",
+                    has_type_hint=True,
+                    default="42",
+                    position=1,
+                    kind=ast_parser.models.ParameterKind.KEYWORD_ONLY,
+                ),
+                ast_parser.models.ParameterInfo(
+                    name="args",
+                    type_hint=None,
+                    has_type_hint=False,
+                    default=None,
+                    position=2,
+                    kind=ast_parser.models.ParameterKind.VAR_POSITIONAL,
+                ),
+            ],
+        )
+        extraction = ast_parser.models.ExtractionResult(module=module_info, functions=[func_info])
+
+        loader.load_extraction(extraction)
+
+        # Verify function node has structured parameters
+        func_call = mock_connection.create_node_with_list_property.call_args_list[0]
+        # Args: (label, properties, list_property_name, list_value)
+        parameters_list = func_call[0][3]  # Fourth argument is the list
+
+        # Parameters should be a list of dicts, not a string
+        assert isinstance(parameters_list, list)
+        assert len(parameters_list) == 3
+
+        # Verify first parameter structure
+        param1 = parameters_list[0]
+        assert param1["name"] == "pos_arg"
+        assert param1["type_hint"] == "str"
+        assert param1["has_type_hint"] is True
+        assert param1["default"] is None
+        assert param1["position"] == 0
+        assert param1["kind"] == "POSITIONAL_OR_KEYWORD"
+
+        # Verify second parameter (keyword-only with default)
+        param2 = parameters_list[1]
+        assert param2["name"] == "kw_arg"
+        assert param2["type_hint"] == "int"
+        assert param2["default"] == "42"
+        assert param2["kind"] == "KEYWORD_ONLY"
+
+        # Verify third parameter (*args)
+        param3 = parameters_list[2]
+        assert param3["name"] == "args"
+        assert param3["type_hint"] is None
+        assert param3["kind"] == "VAR_POSITIONAL"
 
     def test_load_class_with_methods(self):
         """Test loading a class with methods."""
