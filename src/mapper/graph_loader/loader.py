@@ -356,7 +356,7 @@ class GraphLoader:
             "has_type_hint": param.has_type_hint,
             "default": param.default,
             "position": param.position,
-            "kind": param.kind,
+            "kind": param.kind.value,  # Convert enum to its string value
         }
 
     def _create_decorator_nodes(

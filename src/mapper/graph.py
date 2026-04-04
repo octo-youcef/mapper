@@ -196,6 +196,12 @@ class Neo4jConnection:
 
             props_str = ", ".join(props_parts)
             query = f"CREATE (n:{label.value} {{{props_str}}}) RETURN elementId(n) as node_id"
+
+            # Debug: print query to see what we're sending to Neo4j
+            import sys
+            print(f"DEBUG: Cypher query:\n{query}", file=sys.stderr)
+            print(f"DEBUG: Parameters: {properties}", file=sys.stderr)
+
             result = session.run(query, parameters=properties)
             record = result.single()
             return str(record["node_id"]) if record else ""
