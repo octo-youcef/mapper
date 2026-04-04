@@ -7,7 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.7.8] - 2026-04-04
+## [0.7.9] - 2026-04-04
+
+### Added
+- **Neo4j Schema Documentation** - Complete reference for graph database schema
+  - Documents all 5 node types (Module, Class, Function, Method, Import) with properties and examples
+  - Documents all 7 relationship types (DEFINES, CONTAINS, INHERITS, CALLS, IMPORTS, FROM_MODULE, DEPENDS_ON)
+  - Includes constraints, indexes, and schema visualization
+  - Query examples for common use cases and schema validation
+  - Migration guide for future schema changes
+  - 726 lines of comprehensive documentation
+- **Cypher Query Cookbook** - Ready-to-use queries for advanced users
+  - Full source code for all 5 built-in CLI queries
+  - Code quality analysis patterns (type hints, large classes, public API surface)
+  - Dependency analysis queries (module graphs, external dependencies, dependency trees)
+  - Architecture exploration (inheritance hierarchies, module structure, import patterns)
+  - Custom patterns for call graphs, integration points, and complexity metrics
+  - Performance tips and troubleshooting guide
+  - 645 lines of practical query examples
+- Enables Tier 2 users to write custom Cypher queries without diving into source code
+- Provides complete graph schema reference for external tools (Neo4j Bloom, etc.)
 
 ## [0.7.8] - 2026-04-04
 
