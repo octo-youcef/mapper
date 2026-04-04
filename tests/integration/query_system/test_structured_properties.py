@@ -261,9 +261,10 @@ class MyClass:
 
         # Find functions where ALL parameters lack type hints
         query = """
-        MATCH (f:Function {package: $package})
-        WHERE size(f.parameters) > 0
-        AND all(param IN f.parameters WHERE param.has_type_hint = false)
+        MATCH (f:Function {package: $package})-[:HAS_PARAMETER]->(p:Parameter)
+        WITH f, collect(p) as params
+        WHERE size(params) > 0
+        AND all(param IN params WHERE param.has_type_hint = false)
         RETURN f.name as name
         ORDER BY name
         """
@@ -349,7 +350,7 @@ class MyClass:
         # decorated_with_args has @rate_limit(10)
         assert any(r["decorator_name"] == "rate_limit" for r in records)
         rate_limit_record = next(r for r in records if r["decorator_name"] == "rate_limit")
-        assert rate_limit_record["args"] == "10"
+        assert rate_limit_record["args"] == "(10)"  # Args include parentheses
         assert "rate_limit(10)" in rate_limit_record["full_text"]
 
     def test_query_decorated_methods(self, analyzed_fixture):
