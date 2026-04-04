@@ -7,6 +7,69 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-04-05
+
+### Added
+- **Structured parameter storage** - Parameters now stored as queryable arrays (Breaking Change #30)
+  - Each parameter stored with full metadata: name, type_hint, has_type_hint, default, position, kind
+  - Parameter kind enum matches Python's inspect module: POSITIONAL_ONLY, POSITIONAL_OR_KEYWORD, VAR_POSITIONAL, KEYWORD_ONLY, VAR_KEYWORD
+  - Enables precise queries: "find functions with defaults but no type hints"
+  - Query by parameter kind, position, type annotation presence
+  - Replaces serialized string property with structured array
+- **Decorator nodes** - Decorators now first-class graph entities (Breaking Change #30)
+  - New :Decorator node type with name, args, full_text properties
+  - DECORATED_WITH relationships connect functions/methods/classes to decorators
+  - Enables decorator queries: "find all @cached functions", "count decorator usage"
+  - Query decorators by name, arguments, or usage patterns
+  - Replaces serialized string property with nodes and relationships
+- **Integration tests for structured properties** - 15 tests proving queryability
+  - Parameter-level queries: by count, defaults, kind, type hints, position
+  - Decorator-level queries: by name, arguments, usage count, on methods/classes
+  - Combined queries: decorated functions with specific parameter patterns
+  - Test fixture with all 5 parameter kinds and various decorators
+- **Updated technical documentation** - Schema and loader docs reflect v0.8.0 changes
+  - Neo4j schema documentation updated: 6 node types, 8 relationship types
+  - Added Decorator node section with properties and query examples
+  - Updated Function/Method sections with structured parameter details
+  - Added structured property query examples (15+ new queries)
+  - Migration guide for upgrading from v0.7.x
+
+### Changed
+- **Neo4j schema version 0.8.0** - Breaking changes require re-analysis
+  - Parameters property changed from string to array[dict]
+  - Decorators property removed (now separate nodes)
+  - New DECORATED_WITH relationship type
+  - See migration guide in docs/technical/neo4j-schema.md
+
+### Removed
+- **Decorators string property** - Replaced with Decorator nodes and DECORATED_WITH relationships
+  - Old property: `decorators: "[{'name': 'cache', 'args': []}]"` (string)
+  - New model: `(:Function)-[:DECORATED_WITH]->(:Decorator {name: 'cache'})` (graph)
+  - Enables richer queries and better data modeling
+
+### Breaking Changes
+- **Re-analysis required** - Projects analyzed with v0.7.x must be re-analyzed with v0.8.0
+  - Old schema: serialized strings for parameters and decorators
+  - New schema: structured arrays and decorator nodes
+  - Run: `mapper analyse clear <package>` then `mapper analyse start <path>`
+  - Benefits: Precise queries, better performance, cleaner data model
+- **Decorator queries changed** - Old string-based queries no longer work
+  - Before: Parse `decorators` string property
+  - Now: Query Decorator nodes via DECORATED_WITH relationships
+  - See docs/technical/neo4j-schema.md for new query patterns
+
+### Fixed
+- **Name resolver tests** - Updated to use DecoratorInfo model instead of dicts
+  - 3 tests updated to expect frozen DecoratorInfo objects
+  - Decorator name resolution currently disabled (will be re-enabled in future)
+
+### Test Coverage
+- Total test count: 197 unit tests + 15 integration tests = 212 tests
+- All structured property features covered by integration tests
+- Parameter queries: 8 tests (count, defaults, kinds, type hints, position)
+- Decorator queries: 5 tests (by name, arguments, usage, on methods)
+- Combined queries: 2 tests (complex patterns)
+
 ## [0.7.9] - 2026-04-04
 
 ### Added
