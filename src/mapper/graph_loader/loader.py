@@ -239,6 +239,8 @@ class GraphLoader:
         }
         if module.docstring:
             properties["docstring"] = module.docstring
+        if module.exported_names:
+            properties["exported_names"] = module.exported_names  # type: ignore[assignment]
 
         node_id = self.connection.create_node(graph.NodeLabel.MODULE, properties)
         self._node_ids[fqn] = node_id

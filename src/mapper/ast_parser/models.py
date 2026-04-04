@@ -19,6 +19,7 @@ class ModuleInfo:
     path: str
     name: str
     docstring: str | None = None
+    exported_names: list[str] = attrs.field(factory=list)  # Names in __all__
 
 
 @attrs.define

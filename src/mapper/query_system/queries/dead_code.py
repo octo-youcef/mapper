@@ -40,6 +40,13 @@ class DeadCodeQuery(Query):
           AND NOT ()-[:CALLS]->(f)
           AND NOT f.name IN ['main', '__init__', '__main__']
           AND NOT f.name STARTS WITH 'test_'
+        // Exclude items explicitly exported in package __all__
+        // Check if ANY module in the same package has f.name in exported_names
+        OPTIONAL MATCH (export_module:Module {package: $package})
+        WHERE export_module.exported_names IS NOT NULL
+          AND f.name IN export_module.exported_names
+        WITH f, export_module
+        WHERE export_module IS NULL  // Keep only items NOT in any __all__
         RETURN
           f.fqn as fqn,
           f.is_public as is_public,

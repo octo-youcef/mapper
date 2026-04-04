@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.8] - 2026-04-04
+
+### Added
+- **Dead code detection respects __all__ exports** - Reduces false positives by filtering intentionally exported APIs
+  - AST extraction now captures `__all__` assignments from modules
+  - Module nodes store `exported_names` array in Neo4j
+  - Dead code query excludes items explicitly listed in any module's `__all__`
+  - Correctly identifies public APIs meant for external use vs truly unused code
+  - 7 new integration tests with exported_api fixture
+  - Real-world impact: 293 → 251 items flagged (14% reduction in false positives)
+  - Test count: 249 → 256 tests
+
+### Changed
+- **Dead code query accuracy** - Now distinguishes between public API and genuinely unused code
+  - Items in `__all__` are not flagged even if uncalled internally (external packages may use them)
+  - Items NOT in `__all__` continue to be flagged if unused (correct behavior)
+  - Private items (leading `_`) flagged regardless of `__all__` (as expected)
+  - Methods of exported classes may still be flagged if unused (correct granularity)
+
 ## [0.7.7] - 2026-04-04
 
 ### Added

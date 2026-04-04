@@ -40,6 +40,30 @@ class ASTExtractor:
         # Everything else is public
         return True
 
+    @staticmethod
+    def _extract_all_exports(tree: ast.Module) -> list[str]:
+        """Extract names from __all__ assignment.
+
+        Args:
+            tree: AST module tree
+
+        Returns:
+            List of exported names, empty if no __all__ defined
+        """
+        for node in tree.body:
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name) and target.id == "__all__":
+                        # Found __all__ assignment
+                        if isinstance(node.value, ast.List):
+                            # __all__ = ["name1", "name2"]
+                            names = []
+                            for elt in node.value.elts:
+                                if isinstance(elt, ast.Constant) and isinstance(elt.value, str):
+                                    names.append(elt.value)
+                            return names
+        return []
+
     def extract(self) -> models.ExtractionResult:
         """Extract information from code.
 
@@ -54,7 +78,13 @@ class ASTExtractor:
         # Extract module info
         module_name = Path(self.file_path).stem
         docstring = ast.get_docstring(self.tree)
-        module = models.ModuleInfo(path=self.file_path, name=module_name, docstring=docstring)
+        exported_names = self._extract_all_exports(self.tree)
+        module = models.ModuleInfo(
+            path=self.file_path,
+            name=module_name,
+            docstring=docstring,
+            exported_names=exported_names,
+        )
 
         result = models.ExtractionResult(module=module)
 
