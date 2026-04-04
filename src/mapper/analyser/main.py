@@ -90,12 +90,20 @@ class Analyser:
         # Load into graph database if loader provided
         if self.loader:
             self.loader.load_extraction(extraction)
-            # Count nodes created: module + classes + functions + methods in classes
+            # Count nodes created: module + classes + functions + methods + parameters
             result.nodes_created += 1  # module
             result.nodes_created += len(extraction.classes)
             result.nodes_created += len(extraction.functions)
             for class_info in extraction.classes:
                 result.nodes_created += len(class_info.methods)
+                # Count parameters in methods
+                for method in class_info.methods:
+                    if method.parameters:
+                        result.nodes_created += len(method.parameters)
+            # Count parameters in functions
+            for func in extraction.functions:
+                if func.parameters:
+                    result.nodes_created += len(func.parameters)
 
         # Type inference and validation (reuses parsed tree)
         if extractor.tree:
