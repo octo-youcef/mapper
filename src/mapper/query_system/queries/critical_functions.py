@@ -30,6 +30,9 @@ class CriticalFunctionsQuery(Query):
     description: str = "Find most-called functions"
     group: QueryGroup = QueryGroup.CRITICAL
     columns: list[str] = attrs.field(factory=lambda: ["Severity", "Function", "Callers", "Risk"])
+    thresholds: dict[str, int] = attrs.field(
+        factory=lambda: {"critical": 20, "high": 10, "medium": 5}
+    )
 
     # -------------------------------------------------------------------------
     # Cypher query
@@ -53,6 +56,8 @@ class CriticalFunctionsQuery(Query):
     def _get_risk_description(self, row: dict[str, Any]) -> str:
         """Get human-readable risk description based on caller count.
 
+        Uses configurable thresholds from self.thresholds.
+
         Args:
             row: Query result with "callers" field
 
@@ -61,9 +66,9 @@ class CriticalFunctionsQuery(Query):
         """
         count = row["callers"]
 
-        if count > 20:
+        if count > self.thresholds["critical"]:
             return "High blast radius"
-        if count >= 10:
+        if count >= self.thresholds["high"]:
             return "Significant coupling"
         return "Moderate usage"
 
@@ -74,7 +79,12 @@ class CriticalFunctionsQuery(Query):
     def _calculate_severity_impl(self, row: dict[str, Any]) -> Severity:
         """Calculate severity based on caller count.
 
-        More callers = higher severity since changes affect more code.
+        Uses configurable thresholds from self.thresholds:
+        - Count > critical threshold: Critical severity
+        - Count >= high threshold: High severity
+        - Otherwise: Medium severity
+
+        Default thresholds: critical=20, high=10, medium=5
 
         Args:
             row: Query result with "callers" field
@@ -84,9 +94,9 @@ class CriticalFunctionsQuery(Query):
         """
         count = row["callers"]
 
-        if count > 20:
+        if count > self.thresholds["critical"]:
             return Severity.CRITICAL
-        if count >= 10:
+        if count >= self.thresholds["high"]:
             return Severity.HIGH
         return Severity.MEDIUM
 

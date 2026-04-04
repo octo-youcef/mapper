@@ -86,6 +86,22 @@ class Query(ABC):
         """Cypher query template with $package parameter."""
         ...
 
+    @property
+    @abstractmethod
+    def thresholds(self) -> dict[str, int]:
+        """Severity thresholds for this query.
+
+        Keys are severity levels (e.g., 'critical', 'high', 'medium').
+        Values are integer thresholds specific to the query's metric.
+
+        Defaults are defined by each query class. Can be overridden via
+        config file under [query.thresholds.{query_name}] section.
+
+        Example for call complexity query:
+            {'critical': 5, 'high': 3, 'medium': 1}
+        """
+        ...
+
     @abstractmethod
     def _calculate_severity_impl(self, row: dict[str, Any]) -> Severity:
         """Implement query-specific severity calculation logic.

@@ -95,6 +95,44 @@ class ConfigManager:
         return models.Config(neo4j=neo4j_config, analysis=analysis_config, output=output_config)
 
     @classmethod
+    def get_query_thresholds(cls, query_name: str) -> dict[str, int]:
+        """Load threshold overrides for a specific query from config files.
+
+        Looks for [query.thresholds.{query_name}] section in global and local
+        config files. Local config takes precedence over global.
+
+        Args:
+            query_name: Name of the query (e.g., "analyze-call-complexity")
+
+        Returns:
+            dict[str, int]: Threshold overrides (empty dict if no config section exists)
+
+        Example:
+            Config file with:
+                [query.thresholds.analyze-call-complexity]
+                critical = 7
+                high = 4
+
+            Returns: {"critical": 7, "high": 4}
+        """
+        global_config = cls.load_config_file(cls.get_global_config_path())
+        local_config = cls.load_config_file(cls.get_local_config_path())
+        merged = cls.merge_configs(global_config, local_config)
+
+        # Navigate to query.thresholds.{query_name} section
+        query_section = merged.get("query", {})
+        thresholds_section = query_section.get("thresholds", {})
+        query_thresholds = thresholds_section.get(query_name, {})
+
+        # Filter to only include integer values (ignore non-threshold config)
+        # Note: Must explicitly exclude bool since isinstance(True, int) is True in Python
+        return {
+            k: v
+            for k, v in query_thresholds.items()
+            if isinstance(v, int) and not isinstance(v, bool)
+        }
+
+    @classmethod
     def save_config(cls, config: models.Config, global_config: bool = False) -> Path:
         """Save configuration to file.
 
@@ -146,6 +184,32 @@ uri = "bolt://localhost:7687"
 # verbose = false
 # color = true
 # format = "json"  # Default output format: json, yaml, toml
+
+# Query threshold overrides (optional)
+# Customize severity thresholds for risk detection queries
+# Defaults are tuned for medium-sized codebases (~10k-50k LOC)
+
+# [query.thresholds.analyze-call-complexity]
+# critical = 5  # Call depth threshold for critical severity
+# high = 3      # Call depth threshold for high severity
+# medium = 1    # Call depth threshold for medium severity
+
+# [query.thresholds.detect-circular-dependencies]
+# critical = 5  # Cycle length threshold for critical severity
+# high = 3      # Cycle length threshold for high severity
+# medium = 2    # Cycle length threshold for medium severity
+
+# [query.thresholds.analyze-module-centrality]
+# critical = 10  # Dependent count threshold for critical severity
+# high = 6       # Dependent count threshold for high severity
+# medium = 3     # Dependent count threshold for medium severity
+
+# [query.thresholds.find-critical-functions]
+# critical = 20  # Caller count threshold for critical severity
+# high = 10      # Caller count threshold for high severity
+# medium = 5     # Caller count threshold for medium severity
+
+# Note: find-dead-code query has no thresholds (binary: used or unused)
 """
 
         with open(path, "w") as f:

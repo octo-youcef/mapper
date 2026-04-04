@@ -35,6 +35,9 @@ class CircularDependenciesQuery(Query):
     description: str = "Find circular dependencies in module imports"
     group: QueryGroup = QueryGroup.RISK
     columns: list[str] = attrs.field(factory=lambda: ["Severity", "Cycle", "Length"])
+    thresholds: dict[str, int] = attrs.field(
+        factory=lambda: {"critical": 5, "high": 3, "medium": 2}
+    )
 
     # -------------------------------------------------------------------------
     # Cypher query
@@ -114,10 +117,12 @@ class CircularDependenciesQuery(Query):
     def _calculate_severity_impl(self, row: dict[str, Any]) -> Severity:
         """Calculate severity based on cycle length.
 
-        Longer cycles are harder to break and indicate more complex coupling:
-        - Length ≥ 5: Critical - complex dependency web
-        - Length 3-4: High - moderate complexity
-        - Length 2: Medium - direct circular import
+        Uses configurable thresholds from self.thresholds:
+        - Length ≥ critical threshold: Critical severity
+        - Length ≥ high threshold: High severity
+        - Otherwise: Medium severity
+
+        Default thresholds: critical=5, high=3, medium=2
 
         Args:
             row: Query result with "cycle_length" field
@@ -126,9 +131,9 @@ class CircularDependenciesQuery(Query):
             Severity based on cycle length thresholds
         """
         length = row["cycle_length"]
-        if length >= 5:
+        if length >= self.thresholds["critical"]:
             return Severity.CRITICAL
-        if length >= 3:
+        if length >= self.thresholds["high"]:
             return Severity.HIGH
         return Severity.MEDIUM
 

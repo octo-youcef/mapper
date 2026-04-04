@@ -12,6 +12,7 @@ load_config = ConfigManager.load_config
 merge_configs = ConfigManager.merge_configs
 save_config = ConfigManager.save_config
 create_default_config_file = ConfigManager.create_default_config_file
+get_query_thresholds = ConfigManager.get_query_thresholds
 
 # Load the effective config on module import
 config = ConfigManager.load_config()
@@ -33,6 +34,7 @@ __all__ = [
     "merge_configs",
     "save_config",
     "create_default_config_file",
+    "get_query_thresholds",
     # Global config instance
     "config",
 ]

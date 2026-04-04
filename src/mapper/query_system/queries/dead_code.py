@@ -28,6 +28,7 @@ class DeadCodeQuery(Query):
     description: str = "Find unused functions and classes"
     group: QueryGroup = QueryGroup.RISK
     columns: list[str] = attrs.field(factory=lambda: ["Severity", "FQN", "Type", "Public"])
+    thresholds: dict[str, int] = attrs.field(factory=dict)  # No thresholds (binary)
 
     # -------------------------------------------------------------------------
     # Cypher query

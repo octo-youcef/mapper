@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.7] - 2026-04-04
+
+### Added
+- **Configurable query thresholds** - Severity thresholds now customizable via config file
+  - Added `thresholds` property to Query base class
+  - Each query defines sensible defaults (e.g., call_complexity: critical=5, high=3, medium=1)
+  - Config file supports `[query.thresholds.{query-name}]` sections for overrides
+  - Registry merges config overrides with query defaults using `attrs.evolve()`
+  - Partial overrides fully supported - override one threshold, keep others at defaults
+  - All queries (call_complexity, circular_dependencies, module_centrality, critical_functions) updated
+  - Allows users to tune sensitivity for their codebase size and style
+  - 18 new tests covering defaults, custom thresholds, config loading, and partial overrides
+  - Total test count: 231 → 249 tests
+
+### Changed
+- **Query severity calculation** - Now uses `self.thresholds` instead of hardcoded values
+  - Makes queries adaptable to different project sizes
+  - No behavior change with defaults - existing queries produce same results
+- **Default config template** - Added commented examples of threshold overrides
+  - Shows all available threshold options for each query
+  - Documents default values and what they control
+
 ## [0.7.6] - 2026-04-04
 
 ### Added

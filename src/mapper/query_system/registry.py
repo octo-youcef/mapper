@@ -1,5 +1,8 @@
 """Query registry for managing built-in and custom queries."""
 
+import attrs
+
+from mapper import config_manager
 from mapper.query_system import query
 from mapper.query_system.queries import BUILTIN_QUERIES
 
@@ -8,12 +11,27 @@ class QueryRegistry:
     """Registry for risk detection queries.
 
     Manages built-in queries and provides lookup by name.
+    Merges config file threshold overrides with query defaults.
     """
 
     def __init__(self) -> None:
-        """Initialize registry with built-in queries."""
+        """Initialize registry with built-in queries.
+
+        Loads threshold overrides from config files and merges them with
+        query defaults. This allows users to override individual thresholds
+        while keeping others at their defaults.
+        """
         self._queries: dict[str, query.Query] = {}
         for q in BUILTIN_QUERIES:
+            # Load config overrides for this query
+            config_overrides = config_manager.get_query_thresholds(q.name)
+
+            # Merge config overrides with query defaults
+            # Only merge if query has thresholds (some queries like find-dead-code don't)
+            if config_overrides and q.thresholds:
+                merged_thresholds = {**q.thresholds, **config_overrides}
+                q = attrs.evolve(q, thresholds=merged_thresholds)  # type: ignore[misc]
+
             self._queries[q.name] = q
 
     def get(self, name: str) -> query.Query | None:

@@ -36,6 +36,9 @@ class CallComplexityQuery(Query):
     description: str = "Find functions with deep call chains"
     group: QueryGroup = QueryGroup.RISK
     columns: list[str] = attrs.field(factory=lambda: ["Severity", "Function", "Max Depth"])
+    thresholds: dict[str, int] = attrs.field(
+        factory=lambda: {"critical": 5, "high": 3, "medium": 1}
+    )
 
     # -------------------------------------------------------------------------
     # Cypher query
@@ -63,10 +66,12 @@ class CallComplexityQuery(Query):
     def _calculate_severity_impl(self, row: dict[str, Any]) -> Severity:
         """Calculate severity based on maximum call depth.
 
-        Deep call chains are harder to understand and debug:
-        - Depth ≥ 5: Critical - very difficult to trace execution
-        - Depth ≥ 3: High - moderately complex to understand
-        - Depth < 3: Medium - manageable complexity
+        Uses configurable thresholds from self.thresholds:
+        - Depth ≥ critical threshold: Critical severity
+        - Depth ≥ high threshold: High severity
+        - Otherwise: Medium severity
+
+        Default thresholds: critical=5, high=3, medium=1
 
         Args:
             row: Query result with "max_depth" field
@@ -75,9 +80,9 @@ class CallComplexityQuery(Query):
             Severity based on call depth thresholds
         """
         depth = row["max_depth"]
-        if depth >= 5:
+        if depth >= self.thresholds["critical"]:
             return Severity.CRITICAL
-        if depth >= 3:
+        if depth >= self.thresholds["high"]:
             return Severity.HIGH
         return Severity.MEDIUM
 
