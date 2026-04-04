@@ -1,6 +1,9 @@
-# Neo4j Schema Reference
+# Neo4j Schema Documentation
 
-Complete schema reference for Mapper's Neo4j graph database, including node types, properties, relationships, constraints, and indexes.
+**Version**: 0.7.9  
+**Last Updated**: 2026-04-04
+
+This document describes the complete Neo4j graph schema used by Mapper to store Python code analysis results.
 
 ---
 
@@ -8,699 +11,716 @@ Complete schema reference for Mapper's Neo4j graph database, including node type
 
 - [Overview](#overview)
 - [Node Types](#node-types)
-- [Relationship Types](#relationship-types)
-- [Constraints](#constraints)
-- [Indexes](#indexes)
-- [Schema Initialization](#schema-initialization)
-- [Schema Evolution](#schema-evolution)
-- [Querying Best Practices](#querying-best-practices)
+- [Relationships](#relationships)
+- [Properties](#properties)
+- [Constraints and Indexes](#constraints-and-indexes)
+- [Schema Visualization](#schema-visualization)
+- [Query Examples](#query-examples)
 
 ---
 
 ## Overview
 
-Mapper stores Python code structure in Neo4j using a graph model where:
-- **Nodes** represent code entities (modules, classes, functions, methods)
-- **Relationships** represent connections (defines, contains, inherits, calls, imports)
-- **Properties** store metadata about each entity
+Mapper models Python code as a property graph with **5 node types** and **7 relationship types**:
 
-The schema is designed for:
-- **Fast querying** via strategic indexes and constraints
-- **Referential integrity** via uniqueness constraints on FQNs
-- **Multi-package support** via package property on all nodes
-- **Version tracking** (future) via package versioning
+**Node Types**:
+- `Module` - Python files/packages
+- `Class` - Class definitions
+- `Function` - Standalone functions
+- `Method` - Class methods
+- `Import` - Import statements
+
+**Relationship Types**:
+- `DEFINES` - Module defines class/function
+- `CONTAINS` - Class contains method
+- `INHERITS` - Class inherits from base
+- `CALLS` - Function/method calls another
+- `IMPORTS` - Module imports from Import node
+- `FROM_MODULE` - Import node references source module
+- `DEPENDS_ON` - Module depends on another module (deduplicated)
 
 ---
 
 ## Node Types
 
-### Module
+### 1. Module
 
-Represents a Python file (`.py`).
+Represents a Python file or package (`__init__.py`).
 
-**Label**: `Module`
+**Label**: `:Module`
 
 **Properties**:
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `name` | string | ✓ | Module name (e.g., "utils", "__init__") |
+| `fqn` | string | ✓ | Fully qualified name (same as name for modules) |
+| `path` | string | ✓ | Absolute file path |
+| `package` | string | ✓ | Package name being analyzed |
+| `docstring` | string | ✗ | Module-level docstring |
+| `exported_names` | string[] | ✗ | Items listed in `__all__` (v0.7.8+) |
+| `is_external` | boolean | ✗ | True if external module reference |
 
-| Property | Type | Required | Description | Example |
-|----------|------|----------|-------------|---------|
-| `name` | string | Yes | Module name (filename without .py) | `"handlers"` |
-| `path` | string | Yes | Full file path (UNIQUE) | `"src/handlers.py"` |
-| `fqn` | string | Yes | Fully qualified name | `"myapp.handlers"` |
-| `package` | string | Yes | Package this module belongs to | `"my-project"` |
-| `type` | string | Yes | Always `"module"` | `"module"` |
-| `docstring` | string | No | Module-level docstring | `"Handler functions"` |
-
-**Constraints**:
-- **Uniqueness**: `path` must be unique across all modules
-
-**Indexes**:
-- `name` - Fast lookups by module name
-- `type` - Fast filtering by node type
+**External Modules**: Modules imported from external packages (e.g., `pandas`, `numpy`) are created as reference nodes with `is_external: true` and minimal properties.
 
 **Example**:
 ```cypher
-CREATE (m:Module {
-  name: "handlers",
-  path: "src/myapp/handlers.py",
-  fqn: "myapp.handlers",
-  package: "my-project",
-  type: "module",
-  docstring: "HTTP request handlers"
+(:Module {
+  name: "utils",
+  fqn: "utils",
+  path: "/path/to/utils.py",
+  package: "myapp",
+  docstring: "Utility functions for data processing",
+  exported_names: ["process_data", "validate_input"]
 })
 ```
 
 ---
 
-### Class
+### 2. Class
 
-Represents a class definition.
+Represents a Python class definition.
 
-**Label**: `Class`
+**Label**: `:Class`
 
 **Properties**:
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `name` | string | ✓ | Class name (e.g., "Vehicle") |
+| `fqn` | string | ✓ | Fully qualified name (e.g., "models.Vehicle") |
+| `package` | string | ✓ | Package name being analyzed |
+| `is_public` | boolean | ✓ | True if public (no leading `_`) |
+| `docstring` | string | ✗ | Class docstring |
+| `bases` | string | ✗ | Serialized list of base class names (legacy format) |
 
-| Property | Type | Required | Description | Example |
-|----------|------|----------|-------------|---------|
-| `name` | string | Yes | Class name | `"UserService"` |
-| `fqn` | string | Yes | Fully qualified name (UNIQUE) | `"services.UserService"` |
-| `package` | string | Yes | Package name | `"my-project"` |
-| `is_public` | boolean | Yes | Public vs private (naming) | `true` |
-| `docstring` | string | No | Class docstring | `"User management service"` |
-| `bases` | string | No | Serialized base classes* | `"['BaseService', 'Protocol']"` |
-| `decorators` | string | No | Serialized decorators* | `"['@dataclass']"` |
-
-**Constraints**:
-- **Uniqueness**: `fqn` must be unique across all classes
-
-**Indexes**:
-- `name` - Fast lookups by class name
-- `package` - Filter by package
-- `is_public` - Filter public/private
+**Note**: `bases` property is legacy - inheritance is tracked via `INHERITS` relationships.
 
 **Example**:
 ```cypher
-CREATE (c:Class {
-  name: "UserService",
-  fqn: "services.UserService",
-  package: "my-project",
+(:Class {
+  name: "Vehicle",
+  fqn: "models.Vehicle",
+  package: "myapp",
   is_public: true,
-  docstring: "Handles user operations",
-  bases: "['BaseService']",
-  decorators: "[]"
+  docstring: "Base class for all vehicles",
+  bases: "['BaseModel', 'Serializable']"
 })
 ```
 
-**Notes**:
-- *`bases` and `decorators` are string-serialized lists (improvement tracked in #30)
-- `is_public` determined by naming: `_PrivateClass` → false, `PublicClass` → true
-
 ---
 
-### Function
+### 3. Function
 
-Represents a top-level function (not in a class).
+Represents a standalone function (not a method).
 
-**Label**: `Function`
+**Label**: `:Function`
 
 **Properties**:
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `name` | string | ✓ | Function name (e.g., "process_data") |
+| `fqn` | string | ✓ | Fully qualified name (e.g., "utils.process_data") |
+| `package` | string | ✓ | Package name being analyzed |
+| `is_public` | boolean | ✓ | True if public (no leading `_`) |
+| `docstring` | string | ✗ | Function docstring |
+| `return_type` | string | ✗ | Return type annotation |
+| `parameters` | string | ✗ | Serialized parameter info (legacy format) |
+| `decorators` | string | ✗ | Serialized decorator info (legacy format) |
 
-| Property | Type | Required | Description | Example |
-|----------|------|----------|-------------|---------|
-| `name` | string | Yes | Function name | `"process_request"` |
-| `fqn` | string | Yes | Fully qualified name (UNIQUE) | `"handlers.process_request"` |
-| `package` | string | Yes | Package name | `"my-project"` |
-| `is_public` | boolean | Yes | Public vs private (naming) | `true` |
-| `docstring` | string | No | Function docstring | `"Process HTTP request"` |
-| `return_type` | string | No | Return type annotation | `"Response"` |
-| `parameters` | string | No | Serialized parameters* | `"['request: Request', 'timeout: int = 30']"` |
-| `decorators` | string | No | Serialized decorators* | `"['@app.post', '@validate']"` |
-
-**Constraints**:
-- **Uniqueness**: `fqn` must be unique across all functions
-
-**Indexes**:
-- `name` - Fast lookups by function name
-- `package` - Filter by package
-- `is_public` - Filter public/private
+**Note**: `parameters` and `decorators` are currently serialized strings. See [v0.8.0 roadmap](#future-schema-changes) for structured storage plans.
 
 **Example**:
 ```cypher
-CREATE (f:Function {
-  name: "process_request",
-  fqn: "handlers.process_request",
-  package: "my-project",
+(:Function {
+  name: "process_data",
+  fqn: "utils.process_data",
+  package: "myapp",
   is_public: true,
-  docstring: "Process incoming HTTP request",
-  return_type: "Response",
-  parameters: "['request: Request', 'timeout: int']",
-  decorators: "['@app.post']"
+  docstring: "Process input data and return results",
+  return_type: "dict[str, Any]",
+  parameters: "[ParameterInfo(name='data', type='DataFrame'), ...]",
+  decorators: "[{'name': 'cache', 'args': []}]"
 })
 ```
 
-**Notes**:
-- *`parameters` and `decorators` are string-serialized (improvement tracked in #30)
-- `is_public` determined by naming: `_private_func` → false, `public_func` → true
-
 ---
 
-### Method
+### 4. Method
 
 Represents a class method.
 
-**Label**: `Method`
+**Label**: `:Method`
 
-**Properties**: Same as Function
+**Properties**: Same as `Function` (see above)
 
-**Difference from Function**:
-- Methods are functions defined within a class
-- Methods have `self` or `cls` as first parameter (stored in `parameters`)
-- Methods are connected to their class via `CONTAINS` relationship
+**Distinction**: Methods are functions defined within a class. They have `CONTAINS` relationships from their class, while functions have `DEFINES` relationships from their module.
 
 **Example**:
 ```cypher
-CREATE (m:Method {
-  name: "save",
-  fqn: "services.UserService.save",
-  package: "my-project",
+(:Method {
+  name: "drive",
+  fqn: "models.Vehicle.drive",
+  package: "myapp",
   is_public: true,
-  docstring: "Save user to database",
+  docstring: "Drive the vehicle",
   return_type: "None",
-  parameters: "['self', 'user: User']",
-  decorators: "[]"
+  parameters: "[ParameterInfo(name='self', type=None), ...]"
 })
 ```
 
 ---
 
-## Relationship Types
+### 5. Import
 
-### DEFINES
+Represents an import statement (first-class entity as of v0.6.5).
 
-**Pattern**: `(Module)-[:DEFINES]->(Class|Function)`
+**Label**: `:Import`
 
-**Description**: A module defines a class or function at the top level.
+**Properties**:
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `from_module` | string | ✓ | Source module name (e.g., "typing") |
+| `submodule_path` | string | ✗ | Submodule path for nested imports (e.g., "Optional") |
+| `local_name` | string | ✗ | Local alias (e.g., "Opt" in "from typing import Optional as Opt") |
+| `package` | string | ✓ | Package name being analyzed |
+
+**Import Patterns Supported**:
+```python
+# Simple import
+import pandas
+# → Import(from_module="pandas", submodule_path=None, local_name=None)
+
+# Import with alias
+import pandas as pd
+# → Import(from_module="pandas", submodule_path=None, local_name="pd")
+
+# From import
+from typing import Optional
+# → Import(from_module="typing", submodule_path="Optional", local_name=None)
+
+# From import with alias
+from typing import Optional as Opt
+# → Import(from_module="typing", submodule_path="Optional", local_name="Opt")
+
+# Nested submodule
+from package.submodule.utils import helper
+# → Import(from_module="package.submodule.utils", submodule_path="helper", local_name=None)
+```
+
+**Example**:
+```cypher
+(:Import {
+  from_module: "typing",
+  submodule_path: "Optional",
+  local_name: "Opt",
+  package: "myapp"
+})
+```
+
+---
+
+## Relationships
+
+### 1. DEFINES
+
+**Direction**: Module → Class/Function
+
+**Description**: A module defines a class or standalone function at the top level.
 
 **Properties**: None
 
 **Example**:
 ```cypher
-MATCH (m:Module {fqn: "handlers"}), (f:Function {fqn: "handlers.process_request"})
-CREATE (m)-[:DEFINES]->(f)
+(:Module {name: "models"})-[:DEFINES]->(:Class {name: "Vehicle"})
+(:Module {name: "utils"})-[:DEFINES]->(:Function {name: "process_data"})
 ```
 
-**Use cases**:
-- Find what classes/functions are defined in a module
-- Navigate from module to its contents
+**Usage**:
+```cypher
+// Find all classes defined in a module
+MATCH (m:Module {name: "models"})-[:DEFINES]->(c:Class)
+RETURN c.name
+
+// Find which module defines a specific class
+MATCH (m:Module)-[:DEFINES]->(c:Class {name: "Vehicle"})
+RETURN m.name, m.path
+```
 
 ---
 
-### CONTAINS
+### 2. CONTAINS
 
-**Pattern**: `(Class)-[:CONTAINS]->(Method)`
+**Direction**: Class → Method
 
-**Description**: A class contains a method.
+**Description**: A class contains methods.
 
 **Properties**: None
 
 **Example**:
 ```cypher
-MATCH (c:Class {fqn: "services.UserService"}), (m:Method {fqn: "services.UserService.save"})
-CREATE (c)-[:CONTAINS]->(m)
+(:Class {name: "Vehicle"})-[:CONTAINS]->(:Method {name: "drive"})
 ```
 
-**Use cases**:
-- Find all methods in a class
-- Navigate from class to its methods
+**Usage**:
+```cypher
+// Find all methods in a class
+MATCH (c:Class {name: "Vehicle"})-[:CONTAINS]->(m:Method)
+RETURN m.name
+
+// Find which class contains a method
+MATCH (c:Class)-[:CONTAINS]->(m:Method {name: "drive"})
+RETURN c.fqn
+```
 
 ---
 
-### INHERITS
+### 3. INHERITS
 
-**Pattern**: `(Class)-[:INHERITS]->(Class)`
+**Direction**: Class → Class
 
-**Description**: A class inherits from another class (parent/base class).
+**Description**: A class inherits from a base class.
 
 **Properties**: None
 
 **Example**:
 ```cypher
-MATCH (child:Class {fqn: "models.User"}), (parent:Class {fqn: "models.BaseModel"})
-CREATE (child)-[:INHERITS]->(parent)
+(:Class {name: "Car"})-[:INHERITS]->(:Class {name: "Vehicle"})
 ```
 
-**Use cases**:
-- Find class hierarchy
-- Trace inheritance chains
-- Find all subclasses of a class
+**Usage**:
+```cypher
+// Find all subclasses of a base class
+MATCH (subclass:Class)-[:INHERITS]->(base:Class {name: "Vehicle"})
+RETURN subclass.name
 
-**Notes**:
-- Relationships created during `finalize()` step (deferred)
-- Only tracks inheritance within the same package
-- External base classes (e.g., `Exception`) not stored as nodes
+// Find inheritance hierarchy
+MATCH path = (c:Class {name: "SportsCar"})-[:INHERITS*]->(base:Class)
+RETURN path
+
+// Find classes with multiple inheritance
+MATCH (c:Class)-[:INHERITS]->(base)
+WITH c, count(base) as base_count
+WHERE base_count > 1
+RETURN c.name, base_count
+```
 
 ---
 
-### CALLS
+### 4. CALLS
 
-**Pattern**: `(Function|Method)-[:CALLS]->(Function|Method)`
+**Direction**: Function/Method → Function/Method/Class
 
-**Description**: A function or method calls another function or method.
+**Description**: A function or method calls another function, method, or class (constructor).
 
 **Properties**: None
 
 **Example**:
 ```cypher
-MATCH (caller:Function {fqn: "handlers.process_request"}),
-      (callee:Function {fqn: "utils.validate_input"})
-CREATE (caller)-[:CALLS]->(callee)
+(:Function {name: "main"})-[:CALLS]->(:Function {name: "process_data"})
+(:Method {name: "drive"})-[:CALLS]->(:Method {name: "start_engine"})
+(:Function {name: "create_vehicle"})-[:CALLS]->(:Class {name: "Vehicle"})
 ```
 
-**Use cases**:
-- Trace function call chains
-- Find callers of a function (reverse dependencies)
-- Analyze coupling and dependencies
-- Detect unused functions
+**Usage**:
+```cypher
+// Find all functions called by a function
+MATCH (f:Function {name: "main"})-[:CALLS]->(called)
+RETURN called.name, labels(called)
 
-**Notes**:
-- Relationships created during `finalize()` step (deferred)
-- Only tracks calls within the same package
-- Calls to external libraries not stored
+// Find who calls a specific function (reverse)
+MATCH (caller)-[:CALLS]->(f:Function {name: "process_data"})
+RETURN caller.fqn, labels(caller)
+
+// Find call chains (transitive)
+MATCH path = (start:Function {name: "main"})-[:CALLS*1..5]->(end)
+RETURN path
+
+// Find unused functions (no incoming CALLS)
+MATCH (f:Function {package: $package})
+WHERE NOT ()-[:CALLS]->(f)
+RETURN f.fqn
+```
 
 ---
 
-### IMPORTS
+### 5. IMPORTS
 
-**Pattern**: `(Module)-[:IMPORTS]->(Module)`
+**Direction**: Module → Import
 
-**Description**: A module imports another module.
+**Description**: A module has an import statement.
 
 **Properties**: None
 
 **Example**:
 ```cypher
-MATCH (m1:Module {fqn: "handlers"}), (m2:Module {fqn: "services"})
-CREATE (m1)-[:IMPORTS]->(m2)
+(:Module {name: "utils"})-[:IMPORTS]->(:Import {from_module: "typing"})
 ```
 
-**Use cases**:
-- Analyze module dependencies
-- Find circular imports
-- Trace transitive dependencies
+**Usage**:
+```cypher
+// Find all imports in a module
+MATCH (m:Module {name: "utils"})-[:IMPORTS]->(i:Import)
+RETURN i.from_module, i.submodule_path
 
-**Notes**:
-- Relationships created during `finalize()` step (deferred)
-- Only tracks imports within the same package
-- External imports (e.g., `typing`, `json`) not stored
+// Find which modules import from typing
+MATCH (m:Module)-[:IMPORTS]->(i:Import {from_module: "typing"})
+RETURN m.name
+```
 
 ---
 
-## Constraints
+### 6. FROM_MODULE
 
-Constraints ensure data integrity and enable fast lookups. Created automatically by `mapper init`.
+**Direction**: Import → Module
 
-### Module Path Uniqueness
+**Description**: An import node references a source module (internal or external).
+
+**Properties**: None
+
+**Example**:
+```cypher
+(:Import {from_module: "typing"})-[:FROM_MODULE]->(:Module {name: "typing", is_external: true})
+(:Import {from_module: "utils"})-[:FROM_MODULE]->(:Module {name: "utils"})
+```
+
+**Usage**:
+```cypher
+// Find what modules are imported from external packages
+MATCH (i:Import)-[:FROM_MODULE]->(m:Module {is_external: true})
+RETURN DISTINCT m.name
+
+// Trace import back to source module
+MATCH (importing_module:Module)-[:IMPORTS]->(i:Import)-[:FROM_MODULE]->(source:Module)
+WHERE importing_module.name = "main"
+RETURN i.from_module, source.path
+```
+
+---
+
+### 7. DEPENDS_ON
+
+**Direction**: Module → Module
+
+**Description**: Module-level dependency tracking (introduced v0.6.5). Deduplicated short-circuit relationship representing that one module depends on another via imports.
+
+**Properties**: None
+
+**Deduplication**: Only one `DEPENDS_ON` relationship exists per module pair, regardless of how many imports connect them.
+
+**Example**:
+```cypher
+(:Module {name: "main"})-[:DEPENDS_ON]->(:Module {name: "utils"})
+```
+
+**Usage**:
+```cypher
+// Find all dependencies of a module
+MATCH (m:Module {name: "main"})-[:DEPENDS_ON]->(dep:Module)
+RETURN dep.name
+
+// Find modules that depend on a specific module (reverse dependencies)
+MATCH (dependent:Module)-[:DEPENDS_ON]->(m:Module {name: "utils"})
+RETURN dependent.name
+
+// Count how many modules depend on each module (centrality)
+MATCH (dependent:Module)-[:DEPENDS_ON]->(m:Module {package: $package})
+WHERE NOT m.is_external
+WITH m, count(dependent) as dependents
+WHERE dependents > 0
+RETURN m.name, dependents
+ORDER BY dependents DESC
+
+// Find circular dependencies
+MATCH path = (m1:Module)-[:DEPENDS_ON*2..10]->(m1)
+WHERE all(m IN nodes(path) WHERE m.package = $package)
+RETURN [m IN nodes(path) | m.name] as cycle
+```
+
+---
+
+## Properties
+
+### Common Properties
+
+These properties appear on multiple node types:
+
+| Property | Node Types | Description |
+|----------|------------|-------------|
+| `name` | All | Simple name (not fully qualified) |
+| `fqn` | Class, Function, Method | Fully qualified name (module.Class.method) |
+| `package` | All | Package name being analyzed |
+| `is_public` | Class, Function, Method | True if public (no leading underscore) |
+| `docstring` | Module, Class, Function, Method | Documentation string |
+
+### Node-Specific Properties
+
+| Property | Node Type | Description |
+|----------|-----------|-------------|
+| `path` | Module | Absolute file path |
+| `exported_names` | Module | Items in `__all__` (v0.7.8+) |
+| `is_external` | Module | True for external package references |
+| `bases` | Class | Serialized base class names (legacy) |
+| `return_type` | Function, Method | Return type annotation |
+| `parameters` | Function, Method | Serialized parameter info (legacy) |
+| `decorators` | Function, Method | Serialized decorator info (legacy) |
+| `from_module` | Import | Source module name |
+| `submodule_path` | Import | Nested import path |
+| `local_name` | Import | Import alias |
+
+---
+
+## Constraints and Indexes
+
+### Uniqueness Constraints
+
+These constraints ensure data integrity and automatically create indexes:
 
 ```cypher
+// Module paths must be unique
 CREATE CONSTRAINT module_path_unique IF NOT EXISTS
 FOR (m:Module) REQUIRE m.path IS UNIQUE
-```
 
-**Purpose**: Ensure each file path appears only once in the database.
-
-**Impact**: Prevents duplicate module entries.
-
----
-
-### Class FQN Uniqueness
-
-```cypher
+// Class FQNs must be unique
 CREATE CONSTRAINT class_fqn_unique IF NOT EXISTS
 FOR (c:Class) REQUIRE c.fqn IS UNIQUE
-```
 
-**Purpose**: Ensure each class fully qualified name is unique.
-
-**Impact**:
-- Prevents duplicate class entries
-- Enables fast lookups by FQN
-- Automatically creates index on `c.fqn`
-
----
-
-### Function FQN Uniqueness
-
-```cypher
+// Function FQNs must be unique
 CREATE CONSTRAINT function_fqn_unique IF NOT EXISTS
 FOR (f:Function) REQUIRE f.fqn IS UNIQUE
 ```
 
-**Purpose**: Ensure each function fully qualified name is unique.
+**Note**: Methods do not have a uniqueness constraint since multiple classes can have methods with the same name.
 
-**Impact**:
-- Prevents duplicate function entries (includes methods)
-- Enables fast lookups by FQN
-- Automatically creates index on `f.fqn`
+### Performance Indexes
 
-**Note**: This constraint applies to both Function and Method nodes since they share the same label pattern.
-
----
-
-## Indexes
-
-Indexes improve query performance. Created automatically by `mapper init`.
-
-### Name Indexes
+Additional indexes for common query patterns:
 
 ```cypher
-CREATE INDEX module_name_index IF NOT EXISTS FOR (m:Module) ON (m.name);
-CREATE INDEX class_name_index IF NOT EXISTS FOR (c:Class) ON (c.name);
-CREATE INDEX function_name_index IF NOT EXISTS FOR (f:Function) ON (f.name);
-```
+// Name lookups
+CREATE INDEX module_name_index IF NOT EXISTS
+FOR (m:Module) ON (m.name)
 
-**Purpose**: Fast lookups by name (without FQN).
+CREATE INDEX class_name_index IF NOT EXISTS
+FOR (c:Class) ON (c.name)
 
-**Use case**: Finding entities by simple name across packages.
+CREATE INDEX function_name_index IF NOT EXISTS
+FOR (f:Function) ON (f.name)
 
-**Example query**:
-```cypher
-MATCH (f:Function {name: "process"})
-RETURN f.fqn, f.package
+// Type filtering (unused, can be removed in future versions)
+CREATE INDEX module_type_index IF NOT EXISTS
+FOR (m:Module) ON (m.type)
 ```
 
 ---
 
-### Type Index
+## Schema Visualization
+
+### Basic Structure
+
+```
+┌──────────┐
+│  Module  │
+└─────┬────┘
+      │
+      │ DEFINES
+      ├──────────────────┬──────────────────┐
+      ↓                  ↓                  ↓
+ ┌─────────┐      ┌──────────┐      ┌────────┐
+ │  Class  │      │ Function │      │ Import │
+ └────┬────┘      └──────────┘      └───┬────┘
+      │                                  │
+      │ CONTAINS                         │ FROM_MODULE
+      ↓                                  ↓
+ ┌─────────┐                       ┌──────────┐
+ │ Method  │                       │  Module  │
+ └─────────┘                       │(external)│
+                                   └──────────┘
+
+Relationships:
+  Class   -[INHERITS]-> Class
+  Function-[CALLS]----> Function/Method/Class
+  Method  -[CALLS]----> Function/Method/Class
+  Module  -[IMPORTS]--> Import
+  Module  -[DEPENDS_ON]-> Module
+```
+
+### Full Example
 
 ```cypher
-CREATE INDEX module_type_index IF NOT EXISTS FOR (m:Module) ON (m.type);
-```
+// models.py defines Vehicle class
+(models:Module)-[:DEFINES]->(Vehicle:Class)
 
-**Purpose**: Fast filtering by node type.
+// Vehicle has drive() method
+(Vehicle)-[:CONTAINS]->(drive:Method)
 
-**Use case**: Distinguish modules from other node types in mixed queries.
+// Car inherits from Vehicle
+(Car:Class)-[:INHERITS]->(Vehicle)
 
----
+// main.py has process() function
+(main:Module)-[:DEFINES]->(process:Function)
 
-### Package Index (Implicit)
+// process() calls drive()
+(process)-[:CALLS]->(drive)
 
-The `package` property is frequently queried, and Neo4j query planner may create implicit indexes.
+// main.py imports from models
+(main)-[:IMPORTS]->(import1:Import {from_module: "models"})
+(import1)-[:FROM_MODULE]->(models)
 
-**Recommended manual index** (future enhancement):
-```cypher
-CREATE INDEX package_index IF NOT EXISTS FOR (n) ON (n.package);
-```
-
-**Use case**: Filter nodes by package in all queries.
-
----
-
-### Visibility Index (Implicit)
-
-The `is_public` property is queried for API surface analysis.
-
-**Recommended manual index** (future enhancement):
-```cypher
-CREATE INDEX visibility_index IF NOT EXISTS FOR (n) ON (n.is_public);
-```
-
-**Use case**: Find public vs private entities efficiently.
-
----
-
-## Schema Initialization
-
-### Automatic Initialization
-
-Schema is created automatically by `mapper init`:
-
-```bash
-mapper init
-```
-
-This command:
-1. Connects to Neo4j
-2. Creates all constraints (idempotent)
-3. Creates all indexes (idempotent)
-4. Saves configuration to file
-
-### Manual Initialization
-
-You can manually initialize the schema via Python:
-
-```python
-from mapper import graph
-
-# Connect to Neo4j
-connection = graph.Neo4jConnection(
-    uri="bolt://localhost:7687",
-    user="neo4j",
-    password="devpassword",
-    database="neo4j"
-)
-
-# Initialize schema
-connection.initialize_database()
-```
-
-### Verifying Schema
-
-Check that constraints and indexes exist:
-
-```cypher
-// Show all constraints
-SHOW CONSTRAINTS;
-
-// Show all indexes
-SHOW INDEXES;
+// main depends on models (deduplicated)
+(main)-[:DEPENDS_ON]->(models)
 ```
 
 ---
 
-## Schema Evolution
+## Query Examples
 
-### Current Version: v0.5.0
+### Find Dead Code
 
-**Nodes**: Module, Class, Function, Method
-**Relationships**: DEFINES, CONTAINS, INHERITS, CALLS, IMPORTS
-**Constraints**: path (Module), fqn (Class, Function)
-**Indexes**: name (all types), type (Module)
-
-### Planned Improvements
-
-#### v0.6.0: Structured Property Storage (#30)
-
-**Problem**: Properties like `parameters`, `decorators`, and `bases` are string-serialized lists.
-
-**Solution**: Store as structured data:
-
-**Option 1: JSON properties**
-```cypher
-// Store as JSON string, query with apoc functions
-CREATE (f:Function {
-  name: "process",
-  parameters: '{"args": [{"name": "request", "type": "Request"}]}'
-})
-```
-
-**Option 2: Separate nodes**
-```cypher
-// Create Parameter nodes
-CREATE (f:Function {name: "process"})
-CREATE (p:Parameter {name: "request", type: "Request", position: 0})
-CREATE (f)-[:HAS_PARAMETER]->(p)
-```
-
-**Option 3: Array properties**
-```cypher
-// Store as Cypher arrays (simple types only)
-CREATE (f:Function {
-  name: "process",
-  parameter_names: ["request", "timeout"],
-  parameter_types: ["Request", "int"]
-})
-```
-
-#### v0.8.0: Cross-Package Relationships (#29)
-
-**Problem**: Relationships only tracked within same package.
-
-**Solution**: Store package as relationship property:
+Functions/classes with no incoming CALLS:
 
 ```cypher
-CREATE (f1:Function {fqn: "pkg1.handler", package: "pkg1"})
-CREATE (f2:Function {fqn: "pkg2.utils", package: "pkg2"})
-CREATE (f1)-[:CALLS {from_package: "pkg1", to_package: "pkg2"}]->(f2)
+MATCH (f {package: $package})
+WHERE (f:Function OR f:Method OR f:Class)
+  AND NOT ()-[:CALLS]->(f)
+  AND NOT f.name IN ['main', '__init__', '__main__']
+  AND NOT f.name STARTS WITH 'test_'
+// Exclude items in __all__ (v0.7.8+)
+OPTIONAL MATCH (export_module:Module {package: $package})
+WHERE export_module.exported_names IS NOT NULL
+  AND f.name IN export_module.exported_names
+WITH f, export_module
+WHERE export_module IS NULL
+RETURN f.fqn, f.is_public, labels(f)[0] as type
+ORDER BY f.is_public DESC, f.fqn
 ```
 
-This enables:
-- Cross-package dependency analysis
-- Package-level architecture queries
-- Multi-package impact analysis
+### Module Centrality
 
-#### Future: External File Tracking (#41)
-
-**New node type**: `ExternalFile`
+Modules with many dependents (high impact):
 
 ```cypher
-CREATE (f:ExternalFile {
-  path: "templates/email.html",
-  type: "template",
-  package: "my-project"
-})
-CREATE (func:Function {fqn: "handlers.send_email"})-[:REFERENCES]->(f)
+MATCH (dependent:Module)-[:DEPENDS_ON]->(m:Module {package: $package})
+WHERE NOT m.is_external
+WITH m, count(dependent) as dependents
+WHERE dependents > 0
+RETURN m.name as module, dependents
+ORDER BY dependents DESC
 ```
 
-#### Future: Version Tracking
+### Critical Functions
 
-**Property additions**:
+Functions with many callers:
+
 ```cypher
-CREATE (m:Module {
-  name: "handlers",
-  package: "my-project",
-  version: "0.5.0",
-  analyzed_at: datetime("2026-03-27T10:30:00Z")
-})
+MATCH (caller)-[:CALLS]->(f)
+WHERE (f:Function OR f:Method)
+  AND f.package = $package
+WITH f, count(caller) as callers
+WHERE callers > 0
+RETURN f.fqn as function, callers
+ORDER BY callers DESC
 ```
 
-**Enables**:
-- Historical analysis
-- Version comparison
-- Incremental updates
+### Call Chain Depth
 
-### Migration Strategy
+Maximum call depth from each function:
 
-#### Non-Breaking Changes
-
-Add new properties, nodes, or relationships without removing old ones:
-- Old queries continue to work
-- New queries can use new features
-- No migration needed
-
-**Example**: Adding `version` property:
 ```cypher
-// Old queries still work
-MATCH (m:Module {package: "my-project"}) RETURN m
-
-// New queries can filter by version
-MATCH (m:Module {package: "my-project", version: "0.5.0"}) RETURN m
+MATCH (f {package: $package})
+WHERE f:Function OR f:Method
+OPTIONAL MATCH path = (f)-[:CALLS*1..10]->()
+WITH f, path,
+     CASE WHEN path IS NULL THEN 0
+          ELSE length(path)
+     END as depth
+WITH f.fqn as function, max(depth) as max_depth
+WHERE max_depth > 0
+RETURN function, max_depth
+ORDER BY max_depth DESC
 ```
 
-#### Breaking Changes
+### Circular Dependencies
 
-When removing or renaming properties:
+Find import cycles:
 
-1. **Add new property**, keep old one:
-   ```cypher
-   // Both old and new queries work
-   MATCH (f:Function) RETURN f.parameters, f.parameter_list
-   ```
-
-2. **Deprecation period** (2 versions):
-   - Document old property as deprecated
-   - Update internal code to use new property
-
-3. **Remove old property**:
-   ```cypher
-   MATCH (f:Function) REMOVE f.parameters
-   ```
-
-4. **Update version** in docs
-
-#### Data Migration Script
-
-For major schema changes, provide migration script:
-
-```python
-# migrate_v05_to_v06.py
-from mapper import graph
-
-connection = graph.Neo4jConnection.from_config()
-
-# Migrate string-serialized parameters to JSON
-with connection.driver.session() as session:
-    result = session.run("""
-        MATCH (f:Function)
-        WHERE f.parameters IS NOT NULL
-        WITH f, apoc.convert.fromJsonList(f.parameters) as param_list
-        SET f.parameter_list = param_list
-    """)
+```cypher
+MATCH path = (m:Module)-[:DEPENDS_ON*2..10]->(m)
+WHERE m.package = $package
+  AND all(node IN nodes(path) WHERE node.package = $package)
+WITH nodes(path) as cycle_nodes, length(path) as cycle_length
+WITH [n IN cycle_nodes | n.name] as cycle_names, cycle_length
+// Deduplicate rotations
+WITH cycle_names, cycle_length,
+     apoc.coll.sort(cycle_names) as canonical
+RETURN DISTINCT
+  reduce(s = head(cycle_names), n IN tail(cycle_names) | s + ' → ' + n) + ' → ' + head(cycle_names) as cycle,
+  cycle_length
+ORDER BY cycle_length DESC
 ```
 
 ---
 
-## Querying Best Practices
+## Future Schema Changes
 
-### Use Labels
+### v0.8.0 - Structured Property Storage
 
-Always specify node labels for better performance:
+**Planned improvements** (Issue #30):
 
-```cypher
-// ✅ Good - uses label index
-MATCH (f:Function {package: "my-project"}) RETURN f
+1. **Decorator Nodes**:
+   - Replace `decorators` string property
+   - Create separate `:Decorator` nodes
+   - Use `-[:DECORATED_WITH]->` relationships
 
-// ❌ Slow - scans all nodes
-MATCH (n {package: "my-project"}) WHERE n:Function RETURN n
-```
+2. **Structured Parameters**:
+   - Replace `parameters` string property
+   - Store as array of dicts with:
+     - `name`: Parameter name
+     - `type`: Type annotation (if present)
+     - `default`: Has default value (boolean)
+     - `position`: Parameter position
+     - `has_type_hint`: Boolean flag
 
-### Use Constraints for Lookups
+3. **Benefits**:
+   - Enable code quality queries (e.g., "find public functions without type hints")
+   - More efficient querying
+   - Better data modeling
 
-When looking up by FQN, leverage uniqueness constraints:
+### Future Enhancements
 
-```cypher
-// ✅ Fast - uses unique constraint index
-MATCH (f:Function {fqn: "handlers.process_request"}) RETURN f
-
-// ❌ Slower - uses name index + filter
-MATCH (f:Function {name: "process_request"})
-WHERE f.fqn CONTAINS "handlers"
-RETURN f
-```
-
-### Filter Early
-
-Push WHERE clauses before traversal:
-
-```cypher
-// ✅ Good - filter before traversal
-MATCH (f:Function {package: "my-project", is_public: true})
-MATCH (f)-[:CALLS]->(target)
-RETURN f, target
-
-// ❌ Less efficient - filter after traversal
-MATCH (f:Function)-[:CALLS]->(target)
-WHERE f.package = "my-project" AND f.is_public = true
-RETURN f, target
-```
-
-### Limit Variable Paths
-
-Always bound variable-length path patterns:
-
-```cypher
-// ✅ Good - bounded depth
-MATCH path = (f)-[:CALLS*1..5]->(target) RETURN path
-
-// ❌ Dangerous - unbounded
-MATCH path = (f)-[:CALLS*]->(target) RETURN path
-```
-
-### Use Parameters
-
-Always parameterize queries for performance and security:
-
-```cypher
-// ✅ Good - parameterized
-MATCH (f:Function {package: $package}) RETURN f
-
-// ❌ Bad - string interpolation
-MATCH (f:Function {package: 'my-project'}) RETURN f
-```
+- **Multi-label nodes**: `:Function:Method`, `:Class:External`, `:Module:External`
+- **Exception tracking**: `-[:RAISES]->`, `-[:CATCHES]->`
+- **Context managers**: `-[:USES_CONTEXT]->`
+- **Version tracking**: Historical analysis with timestamps
 
 ---
 
-## Related Documentation
+## Migration Guide
 
-- [Graph Loader](graph_loader.md) - How data is loaded into Neo4j
-- [Cypher Query Cookbook](cypher-queries.md) - Query examples for analysis
-- [Analyzing and Querying Code](../user-journeys/05-analyzing-querying-code.md) - User guide for querying
+### From String Properties to Structured Data (v0.8.0)
+
+When v0.8.0 is released, existing graphs can be migrated using Cypher queries to:
+
+1. Parse existing `decorators` string property
+2. Create Decorator nodes
+3. Create DECORATED_WITH relationships
+4. Parse `parameters` string into structured array
+5. Remove legacy string properties
+
+Migration scripts will be provided in the v0.8.0 release notes.
+
+### Backward Compatibility
+
+New properties (like `exported_names` in v0.7.8) are optional and do not break existing queries. Older nodes without these properties will have `null` values.
+
+---
+
+## See Also
+
+- [Cypher Cookbook](cypher-cookbook.md) - Query examples and patterns
+- [Code Architecture](../contributing/code-architecture.md) - Neo4j schema conventions
+- [Query System](query-system.md) - Built-in risk detection queries
+
+---
+
+**Generated**: 2026-04-04  
+**Schema Version**: 0.7.8  
+**Mapper Version**: 0.7.8
