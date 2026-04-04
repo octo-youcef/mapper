@@ -1,6 +1,7 @@
 """AST extraction for Python code."""
 
 import ast
+import inspect
 from pathlib import Path
 
 from mapper import name_resolver
@@ -141,6 +142,9 @@ class ASTExtractor:
             if isinstance(base, ast.Name):
                 bases.append(base.id)
 
+        # Extract decorators
+        decorators = self._extract_decorators(node.decorator_list)
+
         methods = []
         for item in node.body:
             if isinstance(item, ast.FunctionDef):
@@ -151,6 +155,7 @@ class ASTExtractor:
             is_public=self._is_public(node.name),
             docstring=ast.get_docstring(node),
             bases=bases,
+            decorators=decorators,
             methods=methods,
         )
 
@@ -164,12 +169,7 @@ class ASTExtractor:
             Function information
         """
         # Extract parameters
-        parameters = []
-        for arg in node.args.args:
-            param_type = None
-            if arg.annotation:
-                param_type = self._get_type_string(arg.annotation)
-            parameters.append(models.ParameterInfo(name=arg.arg, type=param_type))
+        parameters = self._extract_parameters(node.args)
 
         # Extract return type
         return_type = None
@@ -177,10 +177,7 @@ class ASTExtractor:
             return_type = self._get_type_string(node.returns)
 
         # Extract decorators
-        decorators = []
-        for dec in node.decorator_list:
-            dec_info = self._extract_decorator(dec)
-            decorators.append(dec_info)
+        decorators = self._extract_decorators(node.decorator_list)
 
         # Extract function calls
         calls = []
@@ -199,6 +196,174 @@ class ASTExtractor:
             decorators=decorators,
             calls=calls,
         )
+
+    def _extract_parameters(self, args: ast.arguments) -> list[models.ParameterInfo]:
+        """Extract parameter information from function arguments.
+
+        Args:
+            args: AST arguments node
+
+        Returns:
+            List of ParameterInfo instances
+        """
+        parameters: list[models.ParameterInfo] = []
+        position = 0
+
+        # Positional-only parameters (before /) - Python 3.8+
+        for arg in args.posonlyargs:
+            type_hint = self._get_type_string(arg.annotation) if arg.annotation else None
+
+            # Get default value if exists (defaults are right-aligned with parameters)
+            # For def f(a, b, c=1, d=2, /): defaults=[1, 2] applies to params c and d
+            # Calculate offset: if 4 params and 2 defaults, offset=2, so params at index 2+ have defaults
+            default = None
+            default_offset = len(args.posonlyargs) - len(args.defaults)
+            param_index = args.posonlyargs.index(arg)
+            if param_index >= default_offset and args.defaults:
+                default_node = args.defaults[param_index - default_offset]
+                default = ast.unparse(default_node)
+
+            parameters.append(
+                models.ParameterInfo(
+                    name=arg.arg,
+                    type_hint=type_hint,
+                    has_type_hint=type_hint is not None,
+                    default=default,
+                    position=position,
+                    kind=models.ParameterKind.POSITIONAL_ONLY,
+                )
+            )
+            position += 1
+
+        # Positional-or-keyword parameters (normal parameters)
+        for arg in args.args:
+            type_hint = self._get_type_string(arg.annotation) if arg.annotation else None
+            # Get default value if exists (defaults are right-aligned)
+            default = None
+            num_defaults = len(args.defaults)
+            num_params = len(args.posonlyargs) + len(args.args)
+            defaults_start = num_params - num_defaults
+            if position >= defaults_start and args.defaults:
+                default_index = position - defaults_start
+                default_node = args.defaults[default_index]
+                default = ast.unparse(default_node)
+
+            parameters.append(
+                models.ParameterInfo(
+                    name=arg.arg,
+                    type_hint=type_hint,
+                    has_type_hint=type_hint is not None,
+                    default=default,
+                    position=position,
+                    kind=models.ParameterKind.POSITIONAL_OR_KEYWORD,
+                )
+            )
+            position += 1
+
+        # *args (vararg)
+        if args.vararg:
+            type_hint = self._get_type_string(args.vararg.annotation) if args.vararg.annotation else None
+            parameters.append(
+                models.ParameterInfo(
+                    name=args.vararg.arg,
+                    type_hint=type_hint,
+                    has_type_hint=type_hint is not None,
+                    default=None,  # *args cannot have defaults
+                    position=position,
+                    kind=models.ParameterKind.VAR_POSITIONAL,
+                )
+            )
+            position += 1
+
+        # Keyword-only parameters (after *)
+        for i, arg in enumerate(args.kwonlyargs):
+            type_hint = self._get_type_string(arg.annotation) if arg.annotation else None
+            # kw_defaults is aligned with kwonlyargs (not right-aligned)
+            default = None
+            if i < len(args.kw_defaults) and args.kw_defaults[i] is not None:
+                default = ast.unparse(args.kw_defaults[i])
+
+            parameters.append(
+                models.ParameterInfo(
+                    name=arg.arg,
+                    type_hint=type_hint,
+                    has_type_hint=type_hint is not None,
+                    default=default,
+                    position=position,
+                    kind=models.ParameterKind.KEYWORD_ONLY,
+                )
+            )
+            position += 1
+
+        # **kwargs (kwarg)
+        if args.kwarg:
+            type_hint = self._get_type_string(args.kwarg.annotation) if args.kwarg.annotation else None
+            parameters.append(
+                models.ParameterInfo(
+                    name=args.kwarg.arg,
+                    type_hint=type_hint,
+                    has_type_hint=type_hint is not None,
+                    default=None,  # **kwargs cannot have defaults
+                    position=position,
+                    kind=models.ParameterKind.VAR_KEYWORD,
+                )
+            )
+            position += 1
+
+        return parameters
+
+    def _extract_decorators(self, decorator_list: list[ast.expr]) -> list[models.DecoratorInfo]:
+        """Extract decorator information from decorator list.
+
+        Args:
+            decorator_list: List of AST decorator nodes
+
+        Returns:
+            List of DecoratorInfo instances
+        """
+        decorators: list[models.DecoratorInfo] = []
+
+        for dec in decorator_list:
+            # Get full text with @ symbol
+            full_text = "@" + ast.unparse(dec)
+
+            # Extract decorator name
+            if isinstance(dec, ast.Name):
+                # Simple decorator: @property
+                name = dec.id
+                args = None
+            elif isinstance(dec, ast.Call):
+                # Decorator with arguments: @rate_limit(10)
+                if isinstance(dec.func, ast.Name):
+                    name = dec.func.id
+                elif isinstance(dec.func, ast.Attribute):
+                    name = ast.unparse(dec.func)
+                else:
+                    name = "unknown"
+                # Extract args as string including parentheses
+                args_str = ast.unparse(dec)
+                # Remove the function name part to get just the args
+                if "(" in args_str:
+                    args = "(" + args_str.split("(", 1)[1]
+                else:
+                    args = "()"
+            elif isinstance(dec, ast.Attribute):
+                # Decorator with attribute access: @app.route
+                name = ast.unparse(dec)
+                args = None
+            else:
+                name = "unknown"
+                args = None
+
+            decorators.append(
+                models.DecoratorInfo(
+                    name=name,
+                    args=args,
+                    full_text=full_text,
+                )
+            )
+
+        return decorators
 
     def _extract_call(self, node: ast.Call) -> models.CallInfo | None:
         """Extract call information from a Call node.
@@ -240,32 +405,6 @@ class ASTExtractor:
                 qualifier=qualifier,
             )
         return None
-
-    def _extract_decorator(self, node: ast.expr) -> dict[str, str | list]:
-        """Extract decorator information.
-
-        Only extracts decorator names for structural analysis.
-        Does not extract argument values (consistent with not storing
-        function call arguments, parameter defaults, etc.).
-
-        Args:
-            node: AST decorator node
-
-        Returns:
-            Decorator information dict with name only
-        """
-        if isinstance(node, ast.Name):
-            return {"name": node.id, "args": []}
-        elif isinstance(node, ast.Call):
-            # For decorators with arguments (e.g., @app.route("/users")),
-            # extract only the decorator name, not the argument values
-            if isinstance(node.func, ast.Name):
-                return {"name": node.func.id, "args": []}
-            elif isinstance(node.func, ast.Attribute):
-                return {"name": self._get_attribute_string(node.func), "args": []}
-        elif isinstance(node, ast.Attribute):
-            return {"name": self._get_attribute_string(node), "args": []}
-        return {"name": "unknown", "args": []}
 
     def _get_type_string(self, node: ast.expr) -> str:
         """Convert type annotation node to string.

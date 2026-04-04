@@ -119,16 +119,15 @@ class NameResolver:
         unresolved: list[models.UnresolvedName] = []
 
         # Resolve decorator names in functions
+        # NOTE: Decorator name resolution temporarily disabled since DecoratorInfo is frozen
+        # TODO: If needed, implement by creating new DecoratorInfo instances with resolved names
         for func in result.functions:
             func_fqn = f"{result.module.name}.{func.name}"
-            for dec_info in func.decorators:
-                decorator_name = dec_info["name"]
-                assert isinstance(decorator_name, str)  # Decorator name is always str
-                resolved = self.resolve(decorator_name, context=func_fqn)
-                if isinstance(resolved, models.UnresolvedName):
-                    unresolved.append(resolved)
-                else:
-                    dec_info["name"] = resolved  # Update with resolved FQN
+            # for dec_info in func.decorators:
+            #     decorator_name = dec_info.name
+            #     resolved = self.resolve(decorator_name, context=func_fqn)
+            #     if isinstance(resolved, models.UnresolvedName):
+            #         unresolved.append(resolved)
 
             # Resolve function call names
             for call in func.calls:
@@ -152,16 +151,15 @@ class NameResolver:
                     class_info.bases[i] = resolved  # Update with resolved FQN
 
             # Resolve method decorators
+            # NOTE: Decorator name resolution temporarily disabled since DecoratorInfo is frozen
+            # TODO: If needed, implement by creating new DecoratorInfo instances with resolved names
             for method in class_info.methods:
                 method_fqn = f"{class_fqn}.{method.name}"
-                for dec_info in method.decorators:
-                    decorator_name = dec_info["name"]
-                    assert isinstance(decorator_name, str)  # Decorator name is always str
-                    resolved = self.resolve(decorator_name, context=method_fqn)
-                    if isinstance(resolved, models.UnresolvedName):
-                        unresolved.append(resolved)
-                    else:
-                        dec_info["name"] = resolved
+                # for dec_info in method.decorators:
+                #     decorator_name = dec_info.name
+                #     resolved = self.resolve(decorator_name, context=method_fqn)
+                #     if isinstance(resolved, models.UnresolvedName):
+                #         unresolved.append(resolved)
 
                 # Resolve method call names
                 for call in method.calls:

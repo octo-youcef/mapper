@@ -54,9 +54,9 @@ class TestASTExtractor:
         assert func2.docstring == "Function with parameters and return type."
         assert len(func2.parameters) == 2
         assert func2.parameters[0].name == "arg1"
-        assert func2.parameters[0].type == "str"
+        assert func2.parameters[0].type_hint == "str"
         assert func2.parameters[1].name == "arg2"
-        assert func2.parameters[1].type == "int"
+        assert func2.parameters[1].type_hint == "int"
         assert func2.return_type == "bool"
 
     def test_extract_classes(self):
@@ -130,13 +130,17 @@ class TestASTExtractor:
 
         func1 = next(f for f in result.functions if f.name == "simple_decorator")
         assert len(func1.decorators) == 1
-        assert func1.decorators[0] == {"name": "property", "args": []}
+        assert func1.decorators[0].name == "property"
+        assert func1.decorators[0].args is None
+        assert func1.decorators[0].full_text == "@property"
 
         func2 = next(f for f in result.functions if f.name == "with_multiple_decorators")
         assert len(func2.decorators) == 2
-        # We extract decorator names only (structural metadata), not argument values
-        assert any(d["name"] == "app.route" for d in func2.decorators)
-        assert any(d["name"] == "require_auth" for d in func2.decorators)
+        # Check decorator names and full_text
+        assert any(d.name == "app.route" for d in func2.decorators)
+        assert any(d.name == "require_auth" for d in func2.decorators)
+        # Verify full_text includes arguments
+        assert any("@app.route" in d.full_text for d in func2.decorators)
 
     def test_extract_function_calls(self):
         """Test extracting function calls within functions."""
