@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.6] - 2026-04-04
+
+### Added
+- **analyze-call-complexity query** - Detect functions with deep call chains
+  - Identifies functions that trigger cascading calls across multiple levels
+  - Maximum call depth calculated for each function
+  - Severity: depth ≥5 = CRITICAL, ≥3 = HIGH, <3 = MEDIUM
+  - Helps find over-abstracted or difficult-to-debug code
+  - Shows all functions ordered by depth descending
+- **detect-circular-dependencies query** - Find module import cycles
+  - Detects both direct (A↔B) and indirect (A→B→C→A) circular imports
+  - Deduplicates cycle rotations (A→B→C→A = B→C→A→B)
+  - Severity based on cycle length: ≥5 modules = CRITICAL, 3-4 = HIGH, 2 = MEDIUM
+  - Helps identify fragile architecture and tight coupling
+  - Shows full cycle paths for easy identification
+- **Integration tests with fixtures** - Human-readable tests for new queries
+  - call_chains fixture: deep_caller (depth=5), shallow_caller (depth=1), branching (depth=3)
+  - circular_imports fixture: 2-module and 3-module cycles
+  - Tests document expected behavior in docstrings
+  - Total test count: 211 → 231 tests (20 new tests)
+
 ## [0.7.5] - 2026-04-04
 
 ### Added
@@ -28,6 +49,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Query module exports** - query_system/queries/__init__.py now only exports BUILTIN_QUERIES
   - Removed dead_code, module_centrality, critical_functions from public exports
   - Only used internally by registry - no need for public access
+>>>>>>> Stashed changes
+>>>>>>> 833b98f (Add complex analysis queries (v0.7.6))
 ## [0.7.4] - 2026-04-04
 
 ### Fixed

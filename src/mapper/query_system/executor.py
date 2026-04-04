@@ -43,6 +43,10 @@ class QueryExecutor:
             result = session.run(q.cypher, package=package)
             rows = [dict(record) for record in result]
 
+        # Allow query to post-process results (e.g., deduplication)
+        if hasattr(q, "execute_with_deduplication"):
+            rows = q.execute_with_deduplication(rows)
+
         # Calculate severity for each row
         results_with_severity = []
         for row in rows:

@@ -12,10 +12,12 @@ class TestQueryRegistry:
         reg = registry.get_registry()
         queries = reg.list_all()
 
-        assert len(queries) == 3
+        assert len(queries) == 5
         assert any(q.name == "find-dead-code" for q in queries)
         assert any(q.name == "analyze-module-centrality" for q in queries)
         assert any(q.name == "find-critical-functions" for q in queries)
+        assert any(q.name == "analyze-call-complexity" for q in queries)
+        assert any(q.name == "detect-circular-dependencies" for q in queries)
 
     def test_get_query_by_name(self):
         """Test getting query by name."""
@@ -45,18 +47,27 @@ class TestQueryRegistry:
         assert groups[0] == QueryGroup.CRITICAL
         assert groups[1] == QueryGroup.CRITICAL
         assert groups[2] == QueryGroup.RISK
+        assert groups[3] == QueryGroup.RISK
+        assert groups[4] == QueryGroup.RISK
 
         # Within critical group, analyze-module-centrality comes before find-critical-functions
         assert queries[0].name == "analyze-module-centrality"
         assert queries[1].name == "find-critical-functions"
+
+        # Within risk group, queries should be sorted alphabetically
+        risk_queries = [q for q in queries if q.group == QueryGroup.RISK]
+        risk_names = [q.name for q in risk_queries]
+        assert risk_names == sorted(risk_names), "Risk queries should be sorted alphabetically"
 
     def test_list_by_group(self):
         """Test filtering queries by group CLI identifier."""
         reg = registry.get_registry()
 
         risk_queries = reg.list_by_group("risk")
-        assert len(risk_queries) == 1
-        assert risk_queries[0].name == "find-dead-code"
+        assert len(risk_queries) == 3
+        assert any(q.name == "find-dead-code" for q in risk_queries)
+        assert any(q.name == "analyze-call-complexity" for q in risk_queries)
+        assert any(q.name == "detect-circular-dependencies" for q in risk_queries)
 
         critical_queries = reg.list_by_group("critical")
         assert len(critical_queries) == 2
