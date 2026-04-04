@@ -12,7 +12,8 @@ This directory contains user-focused workflow documentation for Mapper.
 6. **[Enforcing Code Quality Rules](06-enforcing-code-quality.md)**: Define and enforce code quality rules using graph queries
 7. **[Checking System Status](07-checking-status.md)**: Verify Mapper configuration and Neo4j connectivity
 8. **[Detecting Code Risks](08-detecting-code-risks.md)**: Run CLI queries to identify risks without Neo4j knowledge (recommended starting point)
-9. **Exporting Data**: Exporting analysis results _(coming soon)_
+9. **[Querying Structured Metadata](09-querying-structured-metadata.md)**: Write precise queries using structured parameter and decorator data (v0.8.0+)
+10. **Exporting Data**: Exporting analysis results _(coming soon)_
 
 ## Documentation Format
 
