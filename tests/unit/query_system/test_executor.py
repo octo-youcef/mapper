@@ -8,14 +8,6 @@ from mapper.query_system import executor
 from mapper.query_system.query import Severity
 
 
-@pytest.fixture
-def mock_neo4j_connection():
-    """Create mock Neo4j connection."""
-    mock_connection = mock.MagicMock()
-    mock_connection.database = "neo4j"
-    return mock_connection
-
-
 class TestQueryExecutor:
     """Tests for QueryExecutor class."""
 
