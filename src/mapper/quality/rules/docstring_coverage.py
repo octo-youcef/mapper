@@ -108,6 +108,3 @@ class DocstringCoverageRule(models.QualityRule):
             ),
             by_file=file_results,
         )
-
-
-__all__ = ["DocstringCoverageRule"]

@@ -57,6 +57,3 @@ def get_registry() -> QualityRuleRegistry:
         Global QualityRuleRegistry instance
     """
     return _registry
-
-
-__all__ = ["QualityRuleRegistry", "get_registry"]

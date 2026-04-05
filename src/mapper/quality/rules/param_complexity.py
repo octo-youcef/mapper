@@ -97,6 +97,3 @@ class ParamComplexityRule(models.QualityRule):
             total_violations=total_violations,
             by_file=file_violations,
         )
-
-
-__all__ = ["ParamComplexityRule"]
