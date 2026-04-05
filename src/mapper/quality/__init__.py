@@ -7,4 +7,6 @@ Quality rules are pass/fail checks with configurable thresholds, designed for
 CI/CD integration with exit codes (0 = pass, 1 = fail).
 """
 
-__all__: list[str] = []
+from mapper.quality import config, models, registry
+
+__all__ = ["config", "models", "registry"]

@@ -2,22 +2,18 @@
 
 import fnmatch
 
+import attrs
+
 from mapper import graph
 from mapper.quality import models
 
 
-class DocstringCoverageRule:
+@attrs.define(frozen=True)
+class DocstringCoverageRule(models.QualityRule):
     """Quality rule for enforcing docstring coverage on public functions."""
 
-    @property
-    def name(self) -> str:
-        """Machine-readable rule name."""
-        return "docstring_coverage"
-
-    @property
-    def display_name(self) -> str:
-        """Human-readable rule name."""
-        return "Docstring Coverage"
+    name: str = "docstring_coverage"
+    display_name: str = "Docstring Coverage"
 
     def is_enabled(self, config: models.QualityConfig) -> bool:
         """Check if rule is enabled in configuration."""
@@ -72,7 +68,6 @@ class DocstringCoverageRule:
         for record in records:
             file_path = record["file_path"]
             total = record["total"]
-            compliant = record["compliant"]
             violations = [v for v in record["violations"] if v is not None]
 
             # Apply exclude patterns
@@ -102,12 +97,8 @@ class DocstringCoverageRule:
         # Calculate overall percentage
         overall_percentage = (total_compliant / total_functions * 100) if total_functions > 0 else 0.0
 
-        # Determine pass/fail status
-        status = "pass" if overall_percentage >= doc_cfg.min_coverage else "fail"
-
         return models.CoverageQualityResult(
             rule=self.name,
-            status=status,
             threshold=doc_cfg.min_coverage,
             actual=overall_percentage,
             overall=models.OverallResult(
@@ -117,3 +108,6 @@ class DocstringCoverageRule:
             ),
             by_file=file_results,
         )
+
+
+__all__ = ["DocstringCoverageRule"]

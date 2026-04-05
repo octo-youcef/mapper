@@ -2,22 +2,18 @@
 
 import fnmatch
 
+import attrs
+
 from mapper import graph
 from mapper.quality import models
 
 
-class TypeCoverageRule:
+@attrs.define(frozen=True)
+class TypeCoverageRule(models.QualityRule):
     """Quality rule for enforcing type hint coverage on public functions."""
 
-    @property
-    def name(self) -> str:
-        """Machine-readable rule name."""
-        return "type_coverage"
-
-    @property
-    def display_name(self) -> str:
-        """Human-readable rule name."""
-        return "Type Coverage"
+    name: str = "type_coverage"
+    display_name: str = "Type Coverage"
 
     def is_enabled(self, config: models.QualityConfig) -> bool:
         """Check if rule is enabled in configuration."""
@@ -79,7 +75,6 @@ class TypeCoverageRule:
         for record in records:
             file_path = record["file_path"]
             total = record["total"]
-            compliant = record["compliant"]
             violations = [v for v in record["violations"] if v is not None]
 
             # Apply exclude patterns
@@ -109,12 +104,8 @@ class TypeCoverageRule:
         # Calculate overall percentage
         overall_percentage = (total_compliant / total_functions * 100) if total_functions > 0 else 0.0
 
-        # Determine pass/fail status
-        status = "pass" if overall_percentage >= type_cfg.min_coverage else "fail"
-
         return models.CoverageQualityResult(
             rule=self.name,
-            status=status,
             threshold=type_cfg.min_coverage,
             actual=overall_percentage,
             overall=models.OverallResult(
@@ -124,3 +115,6 @@ class TypeCoverageRule:
             ),
             by_file=file_results,
         )
+
+
+__all__ = ["TypeCoverageRule"]

@@ -150,7 +150,6 @@ class TestCoverageQualityResult:
 
         result = models.CoverageQualityResult(
             rule="type_coverage",
-            status="pass",
             threshold=80,
             actual=80.0,
             overall=overall,
@@ -158,7 +157,7 @@ class TestCoverageQualityResult:
         )
 
         assert result.rule == "type_coverage"
-        assert result.status == "pass"
+        assert result.status == "pass"  # Calculated from actual >= threshold
         assert result.threshold == 80
         assert result.actual == 80.0
         assert result.overall == overall
@@ -217,14 +216,13 @@ class TestComplexityQualityResult:
 
         result = models.ComplexityQualityResult(
             rule="param_complexity",
-            status="fail",
             threshold=5,
             total_violations=1,
             by_file=[file_violations],
         )
 
         assert result.rule == "param_complexity"
-        assert result.status == "fail"
+        assert result.status == "fail"  # Calculated from total_violations > 0
         assert result.threshold == 5
         assert result.total_violations == 1
         assert len(result.by_file) == 1

@@ -2,22 +2,18 @@
 
 import fnmatch
 
+import attrs
+
 from mapper import graph
 from mapper.quality import models
 
 
-class ParamComplexityRule:
+@attrs.define(frozen=True)
+class ParamComplexityRule(models.QualityRule):
     """Quality rule for enforcing parameter count limits on functions."""
 
-    @property
-    def name(self) -> str:
-        """Machine-readable rule name."""
-        return "param_complexity"
-
-    @property
-    def display_name(self) -> str:
-        """Human-readable rule name."""
-        return "Parameter Complexity"
+    name: str = "param_complexity"
+    display_name: str = "Parameter Complexity"
 
     def is_enabled(self, config: models.QualityConfig) -> bool:
         """Check if rule is enabled in configuration."""
@@ -95,13 +91,12 @@ class ParamComplexityRule:
                 )
                 total_violations += len(filtered_violations)
 
-        # Determine pass/fail status
-        status = "pass" if total_violations == 0 else "fail"
-
         return models.ComplexityQualityResult(
             rule=self.name,
-            status=status,
             threshold=param_cfg.max_parameters,
             total_violations=total_violations,
             by_file=file_violations,
         )
+
+
+__all__ = ["ParamComplexityRule"]

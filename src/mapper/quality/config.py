@@ -87,3 +87,6 @@ def load_quality_config(config_path: Optional[str] = None) -> models.QualityConf
         docstring_coverage=docstring_coverage,
         param_complexity=param_complexity,
     )
+
+
+__all__ = ["load_quality_config"]
